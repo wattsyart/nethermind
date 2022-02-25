@@ -21,7 +21,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Blockchain;
-using Nethermind.Blockchain.Find;
+using Nethermind.Blockchain.Synchronization;
 using Nethermind.Consensus;
 using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Validators;
@@ -45,7 +45,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
     /// Verifies the payload according to the execution environment rule set (EIP-3675)
     /// and returns the status of the verification and the hash of the last valid block
     /// </summary>
-    public class NewPayloadV1Handler : IAsyncHandler<BlockRequestResult, PayloadStatusV1>
+  public class NewPayloadV1Handler : IAsyncHandler<BlockRequestResult, PayloadStatusV1>
     {
         private readonly IBlockValidator _blockValidator;
         private readonly IBlockTree _blockTree;
@@ -132,7 +132,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 }
                 synced = true;
             }
-
             if (_poSSwitcher.TerminalTotalDifficulty == null ||
                 parentHeader.TotalDifficulty < _poSSwitcher.TerminalTotalDifficulty)
             {
@@ -154,10 +153,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 return ResultWrapper<PayloadStatusV1>.Success(BuildExecutePayloadResult(request, false, parentHeader,
                     $"Processed block is null, request {request}"));
             }
-
-            processedBlock.Header.IsPostMerge = true;
-            AddBlockResult addResult = _blockTree.SuggestBlock(processedBlock, false, false);
-            _logger.Info($"{processedBlock} add result {addResult}");
+            
             return NewPayloadV1Result.Valid(request.BlockHash);
         }
 
@@ -204,6 +200,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
         {
             block.Header.TotalDifficulty = parent.TotalDifficulty + block.Difficulty;
             processedBlock = null;
+            block.Header.IsPostMerge = true;
             if (_blockValidator.ValidateSuggestedBlock(block) == false)
             {
                 if (_logger.IsWarn)
@@ -214,6 +211,9 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
                 return false;
             }
+            
+            var addResult = _blockTree.SuggestBlock(block, false, false);
+            _logger.Info($"{processedBlock} add result {addResult}");
             
             processedBlock = _processor.Process(block, GetProcessingOptions(), NullBlockTracer.Instance);
             if (processedBlock == null)
@@ -232,7 +232,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
 
         private ProcessingOptions GetProcessingOptions()
         {
-            ProcessingOptions options = ProcessingOptions.EthereumMerge;
+            ProcessingOptions options = ProcessingOptions.None;
             if (_initConfig.StoreReceipts)
             {
                 options |= ProcessingOptions.StoreReceipts;
@@ -278,18 +278,6 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             }
 
             return payloadStatus;
-        }
-
-        private bool IsParentProcessed(BlockHeader blockHeader)
-        {
-            BlockHeader? parent =
-                _blockTree.FindParentHeader(blockHeader, BlockTreeLookupOptions.TotalDifficultyNotNeeded);
-            if (parent != null)
-            {
-                return _blockTree.WasProcessed(parent.Number, parent.Hash ?? parent.CalculateHash());
-            }
-
-            return false;
         }
 
         [Flags]
