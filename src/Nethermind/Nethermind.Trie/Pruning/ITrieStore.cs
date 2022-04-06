@@ -16,6 +16,7 @@
 
 using System;
 using Nethermind.Core;
+using Nethermind.Core.Crypto;
 
 namespace Nethermind.Trie.Pruning
 {
@@ -25,7 +26,7 @@ namespace Nethermind.Trie.Pruning
         
         void FinishBlockCommit(TrieType trieType, long blockNumber, TrieNode? root);
 
-        void Prune();
+        bool IsPersisted(Keccak keccak);
 
         void HackPersistOnShutdown();
         
