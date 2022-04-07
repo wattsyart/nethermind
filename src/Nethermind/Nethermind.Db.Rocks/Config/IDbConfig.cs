@@ -53,7 +53,6 @@ namespace Nethermind.Db.Rocks.Config
         ulong CodeDbBlockCacheSize { get; set; }
         bool CodeDbCacheIndexAndFilterBlocks { get; set; }
         
-                
         ulong FlatDbWriteBufferSize { get; set; }
         uint FlatDbWriteBufferNumber { get; set; }
         ulong FlatDbBlockCacheSize { get; set; }

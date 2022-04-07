@@ -414,14 +414,23 @@ namespace Nethermind.Db.Rocks
             {
                 responseBytesCount += iterator.Key().Length;
                 responseBytesCount += iterator.Value().Length;
+                _logger.Info($"key length: {iterator.Key().Length} (key: {iterator.Key()})");
+                _logger.Info($"value length: {iterator.Value().Length}");
+                _logger.Info($"response count: {responseBytesCount}, limit: {responseBytesLimit}");
 
                 if (responseBytesCount > responseBytesLimit)
                 {
+                    _logger.Warn($"responseBytesCount > responseBytesLimit ({responseBytesCount}>{responseBytesLimit}), break");
                     yield break;
                 }
 
+                _logger.Info($"yield returning kvp with key {iterator.Key()}");
                 yield return new KeyValuePair<byte[], byte[]>(iterator.Key(), iterator.Value());
-                if (iterator.Equals(to)) yield break;
+                if (iterator.Key().Equals(to))
+                {
+                    _logger.Warn($"iterator ({iterator.Key()}) equal to ({to})");
+                    yield break;
+                }
 
                 iterator.Next();
             }
