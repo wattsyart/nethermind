@@ -171,15 +171,22 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             }
             _logger.Info($"collected pathWithAccounts. number: {pathWithAccounts.Count}");
 
-            AccountRangeMessage accountRangeMessage = new()
+            try
             {
-                RequestId = msg.RequestId,
-                PathsWithAccounts = pathWithAccounts.ToArray(),
-                Proofs = Array.Empty<byte[]>()
-            };
-            
-            _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
-            Send(accountRangeMessage);
+                AccountRangeMessage accountRangeMessage = new()
+                {
+                    RequestId = msg.RequestId,
+                    PathsWithAccounts = pathWithAccounts.ToArray(),
+                    Proofs = Array.Empty<byte[]>()
+                };
+                
+                _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
+                Send(accountRangeMessage);
+            }
+            catch(Exception e)
+            {
+                _logger.Warn($"caught exception when creating acc msg: {e}");
+            }
         }
 
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)

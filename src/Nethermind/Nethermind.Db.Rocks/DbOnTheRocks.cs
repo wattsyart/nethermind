@@ -345,13 +345,20 @@ namespace Nethermind.Db.Rocks
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> GetRange(byte[] from, byte[] to, long responseBytes)
         {
+            _logger.Info("we are in DbOnTheRocks.GetRange");
+
             if (_isDisposed)
             {
                 throw new ObjectDisposedException($"Attempted to create an iterator on a disposed database {Name}");
             }
 
+            _logger.Info("creating iterator");
             Iterator iterator = CreateIterator(true);
-            return GetRangeCore(iterator, from, to, responseBytes);
+            _logger.Info("created iterator");
+            _logger.Info("collecting range in DbOnTheRocks");
+            IEnumerable<KeyValuePair<byte[], byte[]>> range = GetRangeCore(iterator, from, to, responseBytes);
+            _logger.Info("collected range in DbOnTheRocks");
+            return range;
         }
 
         protected internal Iterator CreateIterator(bool ordered = false, ColumnFamilyHandle? ch = null)
@@ -403,6 +410,8 @@ namespace Nethermind.Db.Rocks
 
         private IEnumerable<KeyValuePair<byte[], byte[]>> GetRangeCore(Iterator iterator, byte[] from, byte[] to, long responseBytesLimit)
         {
+            _logger.Info("we are in DbOnTheRocks.GetRangeCore");
+
             if (_isDisposed)
             {
                 throw new ObjectDisposedException($"Attempted to read form a disposed database {Name}");
