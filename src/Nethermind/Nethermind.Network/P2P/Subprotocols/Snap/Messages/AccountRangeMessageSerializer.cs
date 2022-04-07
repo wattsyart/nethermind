@@ -73,16 +73,15 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
 
         public AccountRangeMessage Deserialize(IByteBuffer byteBuffer)
         {
-            AccountRangeMessage message = new();
             NettyRlpStream rlpStream = new (byteBuffer);
 
             rlpStream.ReadSequenceLength();
 
-            message.RequestId = rlpStream.DecodeLong();
-            message.PathsWithAccounts = rlpStream.DecodeArray(DecodePathWithRlpData);
-            message.Proofs = rlpStream.DecodeArray(s => s.DecodeByteArray());
+            long requestId = rlpStream.DecodeLong();
+            PathWithAccount[]? pathWithAccounts = rlpStream.DecodeArray(DecodePathWithRlpData);
+            byte[][]? proofs = rlpStream.DecodeArray(s => s.DecodeByteArray());
 
-            return message;
+            return new AccountRangeMessage(requestId, pathWithAccounts, proofs);
         }
         
         private PathWithAccount DecodePathWithRlpData(RlpStream stream)
