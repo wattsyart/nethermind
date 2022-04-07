@@ -176,7 +176,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                 AccountRangeMessage accountRangeMessage = new()
                 {
                     RequestId = msg.RequestId,
-                    PathsWithAccounts = pathWithAccounts.ToArray(),
+                    PathsWithAccounts = pathWithAccounts.Count == 0 ? Array.Empty<PathWithAccount>() : pathWithAccounts.ToArray(),
                     Proofs = Array.Empty<byte[]>()
                 };
                 
