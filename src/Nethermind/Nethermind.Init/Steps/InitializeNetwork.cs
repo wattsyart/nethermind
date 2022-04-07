@@ -148,6 +148,7 @@ namespace Nethermind.Init.Steps
             _api.SyncServer = new SyncServer(
                 _api.DbProvider.StateDb,
                 _api.DbProvider.CodeDb,
+                _api.DbProvider.FlatDb,
                 _api.BlockTree!,
                 _api.ReceiptStorage!,
                 _api.BlockValidator!,

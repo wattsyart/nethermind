@@ -264,6 +264,7 @@ namespace Nethermind.Synchronization.Test
             IDb blockInfoDb = dbProvider.BlockInfosDb;
             IDb codeDb = dbProvider.CodeDb;
             IDb stateDb = dbProvider.StateDb;
+            IDb flatDb = dbProvider.FlatDb;
 
             TrieStore trieStore = new(stateDb, LimboLogs.Instance);
             StateReader stateReader = new(trieStore, codeDb, logManager);
@@ -371,6 +372,7 @@ namespace Nethermind.Synchronization.Test
             SyncServer syncServer = new(
                 stateDb,
                 codeDb,
+                flatDb,
                 tree,
                 receiptStorage,
                 Always.Valid,

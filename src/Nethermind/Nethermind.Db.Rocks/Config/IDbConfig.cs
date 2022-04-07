@@ -48,15 +48,16 @@ namespace Nethermind.Db.Rocks.Config
         ulong BlockInfosDbBlockCacheSize { get; set; }
         bool BlockInfosDbCacheIndexAndFilterBlocks { get; set; }
 
-        ulong PendingTxsDbWriteBufferSize { get; set; }
-        uint PendingTxsDbWriteBufferNumber { get; set; }
-        ulong PendingTxsDbBlockCacheSize { get; set; }
-        bool PendingTxsDbCacheIndexAndFilterBlocks { get; set; }
-
         ulong CodeDbWriteBufferSize { get; set; }
         uint CodeDbWriteBufferNumber { get; set; }
         ulong CodeDbBlockCacheSize { get; set; }
         bool CodeDbCacheIndexAndFilterBlocks { get; set; }
+        
+                
+        ulong FlatDbWriteBufferSize { get; set; }
+        uint FlatDbWriteBufferNumber { get; set; }
+        ulong FlatDbBlockCacheSize { get; set; }
+        bool FlatDbCacheIndexAndFilterBlocks { get; set; }
 
         ulong BloomDbWriteBufferSize { get; set; }
         uint BloomDbWriteBufferNumber { get; set; }

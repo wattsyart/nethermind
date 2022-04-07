@@ -63,6 +63,7 @@ namespace Nethermind.Db
                 PersistedDb ? new FullPruningInnerDbFactory(RocksDbFactory, _fileSystem, stateDbSettings.DbPath) : new MemDbFactoryToRocksDbAdapter(MemDbFactory),
                 () => Interlocked.Increment(ref Metrics.StateDbInPruningWrites)));
 
+            RegisterDb(BuildRocksDbSettings(DbNames.Flat, () => Metrics.FlatDbReads++, () => Metrics.FlatDbWrites++));
             RegisterDb(BuildRocksDbSettings(DbNames.Code, () => Metrics.CodeDbReads++, () => Metrics.CodeDbWrites++));
             RegisterDb(BuildRocksDbSettings(DbNames.Bloom, () => Metrics.BloomDbReads++, () => Metrics.BloomDbWrites++));
             RegisterDb(BuildRocksDbSettings(DbNames.CHT, () => Metrics.CHTDbReads++, () => Metrics.CHTDbWrites++));

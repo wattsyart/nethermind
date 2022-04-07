@@ -47,15 +47,15 @@ namespace Nethermind.Db.Rocks.Config
         public ulong BlockInfosDbBlockCacheSize { get; set; } = (ulong) 32.MiB();
         public bool BlockInfosDbCacheIndexAndFilterBlocks { get; set; } = false;
 
-        public ulong PendingTxsDbWriteBufferSize { get; set; } = (ulong) 4.MiB();
-        public uint PendingTxsDbWriteBufferNumber { get; set; } = 4;
-        public ulong PendingTxsDbBlockCacheSize { get; set; } = (ulong) 16.MiB();
-        public bool PendingTxsDbCacheIndexAndFilterBlocks { get; set; } = false;
-
         public ulong CodeDbWriteBufferSize { get; set; } = (ulong) 2.MiB();
         public uint CodeDbWriteBufferNumber { get; set; } = 4;
         public ulong CodeDbBlockCacheSize { get; set; } = (ulong) 8.MiB();
         public bool CodeDbCacheIndexAndFilterBlocks { get; set; } = false;
+        
+        public ulong FlatDbWriteBufferSize { get; set; } = (ulong) 16.MiB();
+        public uint FlatDbWriteBufferNumber { get; set; } = 4;
+        public ulong FlatDbBlockCacheSize { get; set; } = (ulong) 64.MiB();
+        public bool FlatDbCacheIndexAndFilterBlocks { get; set; } = false;
         
         public ulong BloomDbWriteBufferSize { get; set; } = (ulong)1.KiB();
         public uint BloomDbWriteBufferNumber { get; set; } = 4;

@@ -92,6 +92,7 @@ namespace Nethermind.Synchronization.Test
             ctx.SyncServer = new SyncServer(
                 new MemDb(),
                 new MemDb(),
+                new MemDb(),
                 localBlockTree,
                 NullReceiptStorage.Instance,
                 blockValidator,
@@ -131,6 +132,7 @@ namespace Nethermind.Synchronization.Test
             BlockTree localBlockTree = Build.A.BlockTree().OfChainLength(9).TestObject;
 
             ctx.SyncServer = new SyncServer(
+                new MemDb(),
                 new MemDb(),
                 new MemDb(),
                 localBlockTree,
@@ -173,6 +175,7 @@ namespace Nethermind.Synchronization.Test
             ctx.SyncServer = new SyncServer(
                 new MemDb(),
                 new MemDb(),
+                new MemDb(),
                 localBlockTree,
                 NullReceiptStorage.Instance,
                 blockValidator,
@@ -204,6 +207,7 @@ namespace Nethermind.Synchronization.Test
             ctx.SyncServer = new SyncServer(
                 new MemDb(),
                 new MemDb(),
+                new MemDb(),
                 localBlockTree,
                 NullReceiptStorage.Instance,
                 Always.Valid,
@@ -232,6 +236,7 @@ namespace Nethermind.Synchronization.Test
                 BlockTree = Substitute.For<IBlockTree>();
                 StaticSelector selector = StaticSelector.Full;
                 SyncServer = new SyncServer(
+                    new MemDb(),
                     new MemDb(),
                     new MemDb(),
                     BlockTree,

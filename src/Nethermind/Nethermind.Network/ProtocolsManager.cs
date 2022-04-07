@@ -210,7 +210,7 @@ namespace Nethermind.Network
                 {
                     var handler = version switch
                     {
-                        1 => new SnapProtocolHandler(session, _stats, _serializer, _logManager),
+                        1 => new SnapProtocolHandler(session, _stats, _serializer, _syncServer, _logManager),
                         _ => throw new NotSupportedException($"{Protocol.Snap}.{version} is not supported.")
                     };
                     InitSatelliteProtocol(session, handler);

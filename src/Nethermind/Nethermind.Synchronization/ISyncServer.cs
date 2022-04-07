@@ -37,6 +37,7 @@ namespace Nethermind.Synchronization
         Keccak? FindHash(long number);
         BlockHeader[] FindHeaders(Keccak hash, int numberOfBlocks, int skip, bool reverse);
         byte[]?[] GetNodeData(IReadOnlyList<Keccak> keys, NodeDataType includedTypes = NodeDataType.Code | NodeDataType.State);
+        IEnumerable<KeyValuePair<byte[], byte[]>> GetAccountsRange(Keccak from, Keccak to, long responseBytes);
         int GetPeerCount();
         ulong ChainId { get; }
         BlockHeader Genesis { get; }

@@ -192,13 +192,13 @@ namespace Nethermind.Init
             dbConfig.CodeDbWriteBufferSize = (ulong) dbGets.SingleBufferMem;
             dbConfig.CodeDbBlockCacheSize = (ulong) dbGets.CacheMem;
 
-            dbNeeds = GetPendingTxNeeds(cpuCount, syncConfig);
+            dbNeeds = GetFlatNeeds(cpuCount, syncConfig);
             dbGets = GiveItWhatYouCan(dbNeeds, DbMemory, remaining);
             remaining -= dbGets.CacheMem + dbGets.Buffers * dbGets.SingleBufferMem;
-            dbConfig.PendingTxsDbWriteBufferNumber = dbGets.Buffers;
-            dbConfig.PendingTxsDbWriteBufferSize = (ulong) dbGets.SingleBufferMem;
-            dbConfig.PendingTxsDbBlockCacheSize = (ulong) dbGets.CacheMem;
-
+            dbConfig.FlatDbWriteBufferNumber = dbGets.Buffers;
+            dbConfig.FlatDbWriteBufferSize = (ulong) dbGets.SingleBufferMem;
+            dbConfig.FlatDbBlockCacheSize = (ulong) dbGets.CacheMem;
+            
             dbNeeds = GetStateNeeds(cpuCount, syncConfig);
             dbGets = GiveItWhatYouCan(dbNeeds, DbMemory, remaining);
             remaining -= dbGets.CacheMem + dbGets.Buffers * dbGets.SingleBufferMem;
@@ -339,17 +339,6 @@ namespace Nethermind.Init
                 0.01m); // db memory %
         }
 
-        private DbNeeds GetPendingTxNeeds(uint cpuCount, ISyncConfig syncConfig)
-        {
-            return new DbNeeds(
-                4,
-                1.MB(), // min buffer size
-                16.MB(), // max buffer size
-                2.MB(), // min block cache
-                128.MB(), // max block cache
-                0.01m); // db memory %
-        }
-
         private DbNeeds GetCodeNeeds(uint cpuCount, ISyncConfig syncConfig)
         {
             uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 4u : 2u);
@@ -360,6 +349,18 @@ namespace Nethermind.Init
                 2.MB(), // min block cache
                 32.MB(), // max block cache
                 0); // db memory %
+        }
+        
+        private DbNeeds GetFlatNeeds(uint cpuCount, ISyncConfig syncConfig)
+        {
+            uint preferredBuffers = Math.Min(cpuCount, syncConfig.FastSync ? 8u : 4u);
+            return new DbNeeds(
+                preferredBuffers,
+                1.MB(), // min buffer size
+                64.MB(), // max buffer size
+                4.MB(), // min block cache
+                1.GB(), // max block cache
+                1m); // db memory %
         }
 
         private void AssignNettyMemory(INetworkConfig networkConfig, uint cpuCount)

@@ -54,6 +54,7 @@ namespace Nethermind.Synchronization
         private readonly ISealValidator _sealValidator;
         private readonly IDb _stateDb;
         private readonly IDb _codeDb;
+        private readonly IDb _flatDb;
         private readonly ISyncConfig _syncConfig;
         private readonly IWitnessRepository _witnessRepository;
         private readonly CanonicalHashTrie? _cht;
@@ -69,6 +70,7 @@ namespace Nethermind.Synchronization
         public SyncServer(
             IDb stateDb,
             IDb codeDb,
+            IDb flatDb,
             IBlockTree blockTree,
             IReceiptFinder receiptFinder,
             IBlockValidator blockValidator,
@@ -87,6 +89,7 @@ namespace Nethermind.Synchronization
             _sealValidator = sealValidator ?? throw new ArgumentNullException(nameof(sealValidator));
             _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
             _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
+            _flatDb = flatDb ?? throw new ArgumentNullException(nameof(flatDb));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _receiptFinder = receiptFinder ?? throw new ArgumentNullException(nameof(receiptFinder));
             _blockValidator = blockValidator ?? throw new ArgumentNullException(nameof(blockValidator));
@@ -361,6 +364,11 @@ namespace Nethermind.Synchronization
             }
 
             return values;
+        }
+
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetAccountsRange(Keccak from, Keccak to, long responseBytes)
+        {
+            return _flatDb.GetRange(from.Bytes, to.Bytes, responseBytes);
         }
 
         public BlockHeader FindLowestCommonAncestor(BlockHeader firstDescendant, BlockHeader secondDescendant)

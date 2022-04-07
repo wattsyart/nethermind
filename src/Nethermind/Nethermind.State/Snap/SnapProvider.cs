@@ -19,6 +19,7 @@ namespace Nethermind.State.Snap
     public class SnapProvider : ISnapProvider
     {
         private readonly ITrieStore _store;
+        private readonly IDb _flatDb;
         private readonly IDbProvider _dbProvider;
         private readonly ILogManager _logManager;
         private readonly ILogger _logger;
@@ -42,6 +43,8 @@ namespace Nethermind.State.Snap
                 No.Pruning,
                 Persist.EveryBlock,
                 logManager);
+
+            _flatDb = _dbProvider.FlatDb;
 
             _logManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
             _logger = logManager.GetClassLogger();
@@ -68,6 +71,14 @@ namespace Nethermind.State.Snap
 
                 ProgressTracker.NextAccountPath = accounts[accounts.Length - 1].AddressHash;
                 ProgressTracker.MoreAccountsToRight = moreChildrenToRight;
+                
+                foreach (PathWithAccount? pathWithAccount in accounts)
+                {
+                    Rlp rlp = pathWithAccount.Account is null ? null : pathWithAccount.Account.IsTotallyEmpty ? Rlp.Encode(Account.TotallyEmpty) : Rlp.Encode(pathWithAccount.Account);
+
+                    _flatDb.Set(pathWithAccount.AddressHash, rlp.Bytes);
+                    if (pathWithAccount.AddressHash.Bytes[30] == 0 && pathWithAccount.AddressHash.Bytes[31] == 0) _logger.Info($"FLATDB added node {pathWithAccount.AddressHash}");
+                }
             }
             else
             {

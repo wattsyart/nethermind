@@ -121,8 +121,8 @@ namespace Nethermind.Runner.Test
             ulong totalForCode = dbConfig.CodeDbBlockCacheSize
                                  + dbConfig.CodeDbWriteBufferNumber * dbConfig.CodeDbWriteBufferSize;
 
-            ulong totalForPending = dbConfig.PendingTxsDbBlockCacheSize
-                                    + dbConfig.PendingTxsDbWriteBufferNumber * dbConfig.PendingTxsDbWriteBufferSize;
+            ulong totalForPending = dbConfig.FlatDbBlockCacheSize
+                                    + dbConfig.FlatDbWriteBufferNumber * dbConfig.FlatDbWriteBufferSize;
 
             ulong totalMem = (dbConfig.BlockCacheSize + dbConfig.WriteBufferNumber * dbConfig.WriteBufferSize)
                              + totalForHeaders

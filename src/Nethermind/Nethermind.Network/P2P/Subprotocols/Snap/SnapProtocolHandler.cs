@@ -16,9 +16,11 @@
 // 
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Synchronization;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Logging;
@@ -30,6 +32,7 @@ using Nethermind.Network.P2P.Subprotocols.Eth.V65;
 using Nethermind.Network.P2P.Subprotocols.Eth.V66;
 using Nethermind.Network.P2P.Subprotocols.Snap.Messages;
 using Nethermind.Network.Rlpx;
+using Nethermind.Serialization.Rlp;
 using Nethermind.State.Snap;
 using Nethermind.Stats;
 using Nethermind.Stats.Model;
@@ -50,6 +53,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public override string ProtocolCode => Protocol.Snap;
         public override int MessageIdSpaceSize => 8;
 
+        private readonly ISyncServer _syncServer;
         private readonly MessageQueue<GetAccountRangeMessage, AccountRangeMessage> _getAccountRangeRequests;
         private readonly MessageQueue<GetStorageRangeMessage, StorageRangeMessage> _getStorageRangeRequests;
         private readonly MessageQueue<GetByteCodesMessage, ByteCodesMessage> _getByteCodesRequests;
@@ -57,9 +61,12 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public SnapProtocolHandler(ISession session,
             INodeStatsManager nodeStats,
             IMessageSerializationService serializer,
+            ISyncServer syncServer,
             ILogManager logManager)
             : base(session, nodeStats, serializer, logManager)
         {
+            _syncServer = syncServer  ?? throw new ArgumentNullException(nameof(syncServer));
+
             _getAccountRangeRequests = new(Send);
             _getStorageRangeRequests = new(Send);
             _getByteCodesRequests = new(Send);
@@ -150,7 +157,15 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         private void Handle(GetAccountRangeMessage msg)
         {
-            throw new NotImplementedException();
+            IEnumerable<KeyValuePair<byte[], byte[]>>? accountsRange = _syncServer.GetAccountsRange(msg.AccountRange.StartingHash, msg.AccountRange.LimitHash ?? Keccak.MaxValue, msg.ResponseBytes);
+
+            List<PathWithAccount> pathWithAccounts = new();
+            foreach ((byte[]? path, byte[]? account) in accountsRange)
+            {
+                pathWithAccounts.Add(new PathWithAccount(new Keccak(path), Rlp.Decode<Account>(account)));
+            }
+
+            Send(new AccountRangeMessage(){PathsWithAccounts = pathWithAccounts.ToArray()});
         }
 
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)

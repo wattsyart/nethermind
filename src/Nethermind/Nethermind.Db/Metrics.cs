@@ -46,6 +46,12 @@ namespace Nethermind.Db
         [Description("Number of Code DB writes.")]
         public static long CodeDbWrites { get; set; }
         
+        [Description("Number of Flat DB reads.")]
+        public static long FlatDbReads { get; set; }
+        
+        [Description("Number of Flat DB writes.")]
+        public static long FlatDbWrites { get; set; }
+        
         [Description("Number of Receipts DB reads.")]
         public static long ReceiptsDbReads { get; set; }
         

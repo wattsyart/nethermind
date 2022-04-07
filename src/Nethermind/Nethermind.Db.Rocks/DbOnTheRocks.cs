@@ -343,6 +343,17 @@ namespace Nethermind.Db.Rocks
             return GetAllCore(iterator);
         }
 
+        public IEnumerable<KeyValuePair<byte[], byte[]>> GetRange(byte[] from, byte[] to, long responseBytes)
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException($"Attempted to create an iterator on a disposed database {Name}");
+            }
+
+            Iterator iterator = CreateIterator(true);
+            return GetRangeCore(iterator, from, to, responseBytes);
+        }
+
         protected internal Iterator CreateIterator(bool ordered = false, ColumnFamilyHandle? ch = null)
         {
             ReadOptions readOptions = new();
@@ -384,6 +395,34 @@ namespace Nethermind.Db.Rocks
             while (iterator.Valid())
             {
                 yield return new KeyValuePair<byte[], byte[]>(iterator.Key(), iterator.Value());
+                iterator.Next();
+            }
+
+            iterator.Dispose();
+        }
+
+        private IEnumerable<KeyValuePair<byte[], byte[]>> GetRangeCore(Iterator iterator, byte[] from, byte[] to, long responseBytesLimit)
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException($"Attempted to read form a disposed database {Name}");
+            }
+
+            iterator.Seek(from);
+            long responseBytesCount = 0;
+            while (iterator.Valid())
+            {
+                responseBytesCount += iterator.Key().Length;
+                responseBytesCount += iterator.Value().Length;
+
+                if (responseBytesCount > responseBytesLimit)
+                {
+                    yield break;
+                }
+
+                yield return new KeyValuePair<byte[], byte[]>(iterator.Key(), iterator.Value());
+                if (iterator.Equals(to)) yield break;
+
                 iterator.Next();
             }
 

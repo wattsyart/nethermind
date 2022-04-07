@@ -25,6 +25,7 @@ namespace Nethermind.Db
         string Name { get; }
         KeyValuePair<byte[],byte[]?>[] this[byte[][] keys] { get; }
         IEnumerable<KeyValuePair<byte[], byte[]>> GetAll(bool ordered = false);
+        IEnumerable<KeyValuePair<byte[], byte[]>> GetRange(byte[] from, byte[] to, long responseBytes) => GetAll(true);     // temporary hack to not add GetRange to all classes implementing IDb
         IEnumerable<byte[]> GetAllValues(bool ordered = false);
         void Remove(byte[] key);
         bool KeyExists(byte[] key);

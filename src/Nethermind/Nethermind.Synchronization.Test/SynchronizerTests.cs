@@ -288,6 +288,7 @@ namespace Nethermind.Synchronization.Test
                 IDbProvider dbProvider = TestMemDbProvider.Init();
                 IDb stateDb = new MemDb();
                 IDb codeDb = dbProvider.CodeDb;
+                IDb flatDb = new MemDb();
                 MemDb blockInfoDb = new();
                 BlockTree = new BlockTree(new MemDb(), new MemDb(), blockInfoDb, new ChainLevelInfoRepository(blockInfoDb), new SingleReleaseSpecProvider(Constantinople.Instance, 1), NullBloomStorage.Instance, _logManager);
                 ITimerFactory timerFactory = Substitute.For<ITimerFactory>();
@@ -320,6 +321,7 @@ namespace Nethermind.Synchronization.Test
                 SyncServer = new SyncServer(
                     stateDb,
                     codeDb,
+                    flatDb,
                     BlockTree,
                     NullReceiptStorage.Instance,
                     Always.Valid,
