@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain.Synchronization;
@@ -54,6 +55,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
         public override int MessageIdSpaceSize => 8;
 
         private readonly ISyncServer _syncServer;
+        private readonly ILogger _logger;
         private readonly MessageQueue<GetAccountRangeMessage, AccountRangeMessage> _getAccountRangeRequests;
         private readonly MessageQueue<GetStorageRangeMessage, StorageRangeMessage> _getStorageRangeRequests;
         private readonly MessageQueue<GetByteCodesMessage, ByteCodesMessage> _getByteCodesRequests;
@@ -66,7 +68,8 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             : base(session, nodeStats, serializer, logManager)
         {
             _syncServer = syncServer  ?? throw new ArgumentNullException(nameof(syncServer));
-
+            _logger = logManager.GetClassLogger();
+            
             _getAccountRangeRequests = new(Send);
             _getStorageRangeRequests = new(Send);
             _getByteCodesRequests = new(Send);
@@ -157,6 +160,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         private void Handle(GetAccountRangeMessage msg)
         {
+            _logger.Warn($"received GetAccountRangeMessage. id: {msg.RequestId}, responseLimit: {msg.ResponseBytes}, range start: {msg.AccountRange.StartingHash}, range end: {msg.AccountRange.LimitHash}");
             IEnumerable<KeyValuePair<byte[], byte[]>>? accountsRange = _syncServer.GetAccountsRange(msg.AccountRange.StartingHash, msg.AccountRange.LimitHash ?? Keccak.MaxValue, msg.ResponseBytes);
 
             List<PathWithAccount> pathWithAccounts = new();
@@ -165,7 +169,14 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                 pathWithAccounts.Add(new PathWithAccount(new Keccak(path), Rlp.Decode<Account>(account)));
             }
 
-            Send(new AccountRangeMessage(){PathsWithAccounts = pathWithAccounts.ToArray()});
+            AccountRangeMessage accountRangeMessage = new()
+            {
+                RequestId = msg.RequestId,
+                PathsWithAccounts = pathWithAccounts.ToArray()
+            };
+            
+            _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
+            Send(accountRangeMessage);
         }
 
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)
