@@ -121,7 +121,7 @@ namespace Nethermind.Runner.Test
             ulong totalForCode = dbConfig.CodeDbBlockCacheSize
                                  + dbConfig.CodeDbWriteBufferNumber * dbConfig.CodeDbWriteBufferSize;
 
-            ulong totalForPending = dbConfig.FlatDbBlockCacheSize
+            ulong totalForFlat = dbConfig.FlatDbBlockCacheSize
                                     + dbConfig.FlatDbWriteBufferNumber * dbConfig.FlatDbWriteBufferSize;
 
             ulong totalMem = (dbConfig.BlockCacheSize + dbConfig.WriteBufferNumber * dbConfig.WriteBufferSize)
@@ -130,7 +130,7 @@ namespace Nethermind.Runner.Test
                              + totalForInfos
                              + totalForReceipts
                              + totalForCode
-                             + totalForPending;
+                             + totalForFlat;
 
             if (_initConfig.DiagnosticMode != DiagnosticMode.MemDb)
             {

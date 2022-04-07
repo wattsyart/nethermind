@@ -164,7 +164,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             IEnumerable<KeyValuePair<byte[], byte[]>>? accountsRange = _syncServer.GetAccountsRange(msg.AccountRange.StartingHash, msg.AccountRange.LimitHash ?? Keccak.MaxValue, msg.ResponseBytes);
 
             List<PathWithAccount> pathWithAccounts = new();
-            foreach ((byte[]? path, byte[]? account) in accountsRange)
+            foreach ((byte[]? path, byte[]? account) in accountsRange.ToArray())
             {
                 pathWithAccounts.Add(new PathWithAccount(new Keccak(path), Rlp.Decode<Account>(account)));
             }
