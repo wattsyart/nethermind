@@ -368,7 +368,10 @@ namespace Nethermind.Synchronization
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> GetAccountsRange(Keccak from, Keccak to, long responseBytes)
         {
-            return _flatDb.GetRange(from.Bytes, to.Bytes, responseBytes);
+            _logger.Info("collecting range in SyncServer");
+            IEnumerable<KeyValuePair<byte[], byte[]>> range = _flatDb.GetRange(from.Bytes, to.Bytes, responseBytes);
+            _logger.Info("collected range in SyncServer");
+            return range;
         }
 
         public BlockHeader FindLowestCommonAncestor(BlockHeader firstDescendant, BlockHeader secondDescendant)

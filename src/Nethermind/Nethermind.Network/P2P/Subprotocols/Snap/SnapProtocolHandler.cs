@@ -160,8 +160,9 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         private void Handle(GetAccountRangeMessage msg)
         {
-            _logger.Warn($"received GetAccountRangeMessage. id: {msg.RequestId}, responseLimit: {msg.ResponseBytes}, range start: {msg.AccountRange.StartingHash}, range end: {msg.AccountRange.LimitHash}");
+            _logger.Info($"received GetAccountRangeMessage. id: {msg.RequestId}, responseLimit: {msg.ResponseBytes}, range start: {msg.AccountRange.StartingHash}, range end: {msg.AccountRange.LimitHash}");
             IEnumerable<KeyValuePair<byte[], byte[]>>? accountsRange = _syncServer.GetAccountsRange(msg.AccountRange.StartingHash, msg.AccountRange.LimitHash ?? Keccak.MaxValue, msg.ResponseBytes);
+            _logger.Info($"collected accountsRange");
 
             List<PathWithAccount> pathWithAccounts = new();
             foreach ((byte[]? path, byte[]? account) in accountsRange.ToArray())
