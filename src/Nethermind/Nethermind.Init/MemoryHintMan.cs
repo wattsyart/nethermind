@@ -360,7 +360,7 @@ namespace Nethermind.Init
                 64.MB(), // max buffer size
                 4.MB(), // min block cache
                 1.GB(), // max block cache
-                1m); // db memory %
+                0.3m); // db memory %
         }
 
         private void AssignNettyMemory(INetworkConfig networkConfig, uint cpuCount)
