@@ -408,7 +408,16 @@ namespace Nethermind.Db.Rocks
                 throw new ObjectDisposedException($"Attempted to read form a disposed database {Name}");
             }
 
-            iterator.Seek(from);
+            _logger.Info($"seeking from {from}");
+            try
+            {
+                iterator.Seek(from);
+            }
+            catch(Exception e)
+            {
+                _logger.Warn($"caught exception {e}");
+                iterator.SeekToFirst();
+            }
             long responseBytesCount = 0;
             while (iterator.Valid())
             {
