@@ -169,11 +169,13 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             {
                 pathWithAccounts.Add(new PathWithAccount(new Keccak(path), Rlp.Decode<Account>(account)));
             }
+            _logger.Info($"collected pathWithAccounts. number: {pathWithAccounts.Count}");
 
             AccountRangeMessage accountRangeMessage = new()
             {
                 RequestId = msg.RequestId,
-                PathsWithAccounts = pathWithAccounts.ToArray()
+                PathsWithAccounts = pathWithAccounts.ToArray(),
+                Proofs = Array.Empty<byte[]>()
             };
             
             _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
