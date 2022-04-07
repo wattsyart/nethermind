@@ -36,5 +36,12 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
         /// List of trie nodes proving the account range
         /// </summary>
         public byte[][] Proofs { get; set; }
+
+        public AccountRangeMessage(long requestId, PathWithAccount[] pathWithAccounts, byte[][] proofs)
+        {
+            RequestId = requestId;
+            PathsWithAccounts = pathWithAccounts;
+            Proofs = proofs;
+        }
     }
 }
