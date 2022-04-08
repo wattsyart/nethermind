@@ -186,6 +186,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                 };
 
                 _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}");
+                _logger.Info($"rlp: {Rlp.Encode(accountRangeMessage)}");
                 Send(accountRangeMessage);
             }
             catch(Exception e)
