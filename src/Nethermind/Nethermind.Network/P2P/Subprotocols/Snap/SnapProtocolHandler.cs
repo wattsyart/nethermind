@@ -17,6 +17,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -173,19 +174,20 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
             try
             {
-                AccountRangeMessage accountRangeMessage = new()
-                {
-                    RequestId = msg.RequestId,
-                    PathsWithAccounts = pathWithAccounts.Count == 0 ? Array.Empty<PathWithAccount>() : pathWithAccounts.ToArray(),
-                    Proofs = Array.Empty<byte[]>()
-                };
-                
+                AccountRangeMessage accountRangeMessage = new();
+                accountRangeMessage.RequestId = msg.RequestId;
+                accountRangeMessage.PathsWithAccounts = pathWithAccounts.Count == 0
+                    ? Array.Empty<PathWithAccount>()
+                    : pathWithAccounts.ToArray();
+                accountRangeMessage.Proofs = Array.Empty<byte[]>();
+
                 _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
                 Send(accountRangeMessage);
             }
             catch(Exception e)
             {
                 _logger.Warn($"caught exception when creating acc msg: {e}");
+                _logger.Info((new StackTrace()).ToString());
             }
         }
 
