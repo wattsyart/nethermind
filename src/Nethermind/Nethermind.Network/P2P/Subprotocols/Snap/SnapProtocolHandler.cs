@@ -186,8 +186,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
                     Proofs = new[]{proofMock}
                 };
 
-                _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.FirstOrDefault().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.LastOrDefault().AddressHash}");
-                _logger.Info("sending msg");
+                _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}");
                 Send(accountRangeMessage);
             }
             catch(Exception e)
