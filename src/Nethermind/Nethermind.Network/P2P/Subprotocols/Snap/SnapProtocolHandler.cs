@@ -161,7 +161,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         private void Handle(GetAccountRangeMessage msg)
         {
-            _logger.Info($"received GetAccountRangeMessage. id: {msg.RequestId}, responseLimit: {msg.ResponseBytes}, range start: {msg.AccountRange.StartingHash}, range end: {msg.AccountRange.LimitHash}, root: {msg.AccountRange.RootHash}, block: {msg.AccountRange.BlockNumber}");
+            _logger.Info($"received GetAccountRangeMessage. id: {msg.RequestId}, responseLimit: {msg.ResponseBytes}, range start: {msg.AccountRange.StartingHash}, range end: {msg.AccountRange.LimitHash}, root: {msg.AccountRange.RootHash}");
             IEnumerable<KeyValuePair<byte[], byte[]>>? accountsRange = _syncServer.GetAccountsRange(msg.AccountRange.StartingHash, msg.AccountRange.LimitHash ?? Keccak.MaxValue, msg.ResponseBytes);
             _logger.Info($"collected accountsRange");
 
@@ -174,16 +174,17 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
             try
             {
-                byte[] proofMock = { 1, 2, 3 };
+                // byte[] proofMock = { 1, 2, 3 };
                 AccountRangeMessage accountRangeMessage = new();
-                accountRangeMessage.RequestId = msg.RequestId;
-                accountRangeMessage.PathsWithAccounts = Array.Empty<PathWithAccount>();
-                    // pathWithAccounts.Count == 0
-                    // ? Array.Empty<PathWithAccount>()
-                    // : pathWithAccounts.ToArray();
-                accountRangeMessage.Proofs = new[]{proofMock};
+                // accountRangeMessage.RequestId = msg.RequestId;
+                // accountRangeMessage.PathsWithAccounts = Array.Empty<PathWithAccount>();
+                //     // pathWithAccounts.Count == 0
+                //     // ? Array.Empty<PathWithAccount>()
+                //     // : pathWithAccounts.ToArray();
+                // accountRangeMessage.Proofs = new[]{proofMock};
 
-                _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
+                // _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}, first path:{accountRangeMessage.PathsWithAccounts.First().AddressHash}, last path: {accountRangeMessage.PathsWithAccounts.Last().AddressHash}");
+                _logger.Info("sending msg");
                 Send(accountRangeMessage);
             }
             catch(Exception e)
