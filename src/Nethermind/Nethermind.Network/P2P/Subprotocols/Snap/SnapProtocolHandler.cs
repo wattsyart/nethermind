@@ -177,13 +177,12 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             
             try
             {
-                byte[] proofMock = { 1, 2, 3 };
                 AccountRangeMessage accountRangeMessage = new() {
                     RequestId = msg.RequestId,
                     PathsWithAccounts = pathWithAccounts.Count == 0
                         ? Array.Empty<PathWithAccount>()
                         : pathWithAccounts.ToArray(),
-                    Proofs = new[]{proofMock}
+                    Proofs = Array.Empty<byte[]>()
                 };
 
                 _logger.Info($"sending AccountRangeMessage. id: {accountRangeMessage.RequestId}, acc number: {accountRangeMessage.PathsWithAccounts.Length}");

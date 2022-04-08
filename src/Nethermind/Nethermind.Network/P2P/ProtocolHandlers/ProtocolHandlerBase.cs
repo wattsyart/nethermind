@@ -87,6 +87,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
             if (Logger.IsTrace) Logger.Trace($"{Counter} Sending {typeof(T).Name}");
             if(NetworkDiagTracer.IsEnabled)
                 NetworkDiagTracer.ReportOutgoingMessage(Session.Node?.Address, Name, message.ToString());
+            Logger.Info($"sending msg: {message.ToString()}");
             Session.DeliverMessage(message);
         }
 

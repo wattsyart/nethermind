@@ -50,7 +50,7 @@ namespace Nethermind.Network.P2P
             IByteBuffer buffer = _messageSerializationService.ZeroSerialize(message);
             int length = buffer.ReadableBytes;
             
-            _logger.Info($"enqueuing msg. Length: {length}, rlp: {_messageSerializationService.ZeroSerialize(message)}");
+            _logger.Info($"enqueuing msg. Length: {length}, rlp: {_messageSerializationService.ZeroSerialize(message).ToString()}");
             _context.WriteAndFlushAsync(buffer).ContinueWith(t =>
             {
                 if (t.IsFaulted)
