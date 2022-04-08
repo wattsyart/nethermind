@@ -24,7 +24,7 @@ namespace Nethermind.State.Snap
         private readonly ILogger _logger;
 
         public Keccak NextAccountPath { get; set; } = Keccak.Zero;
-        //public Keccak NextAccountPath { get; set; } = new("0xfe00000000000000000000000000000000000000000000000000000000000000");
+        //public Keccak NextAccountPath { get; set; } = new("0xffe0000000000000000000000000000000000000000000000000000000000000");
         private ConcurrentQueue<StorageRange> NextSlotRange { get; set; } = new();
         private ConcurrentQueue<PathWithAccount> StoragesToRetrieve { get; set; } = new();
         private ConcurrentQueue<Keccak> CodesToRetrieve { get; set; } = new();
@@ -103,6 +103,10 @@ namespace Nethermind.State.Snap
 
                 return (range, null, null);
             }
+
+            bool fisnished = IsSnapGetRangesFinished();
+            //if(fisnished) 
+            //    _logger.Warn($"SNAP - IsSnapGetRangesFinished:{fisnished}");
 
             return (null, null, null);
         }
