@@ -486,11 +486,6 @@ namespace Nethermind.Init.Steps
             }
             
             _api.ProtocolValidator = protocolValidator;
-
-            foreach (INethermindPlugin plugin in _api.Plugins)
-            {
-                await plugin.InitNetworkProtocol();
-            }
             
             NodesLoader nodesLoader = new(_networkConfig, _api.NodeStatsManager, peerStorage, _api.RlpxPeer, _api.LogManager);
             
@@ -517,6 +512,11 @@ namespace Nethermind.Init.Steps
                     _logger.Error($"ENR discovery failed: {t.Exception}");
                 }
             });
+            
+            foreach (INethermindPlugin plugin in _api.Plugins)
+            {
+                await plugin.InitNetworkProtocol();
+            }
         }
     }
 }

@@ -87,7 +87,7 @@ namespace Nethermind.Blockchain.Synchronization
         
         [ConfigItem(Description = "Enables witness protocol.", DefaultValue = "false")]
         public bool WitnessProtocolEnabled { get; set; }
-        
+
         [ConfigItem(Description = "Enables SNAP sync protocol.", DefaultValue = "true")]
         public bool SnapSyncProtocolEnabled { get; set; }
         
