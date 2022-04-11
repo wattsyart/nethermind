@@ -40,6 +40,7 @@ using Nethermind.Network.P2P.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V63;
 using Nethermind.Network.P2P.Subprotocols.Eth.V63.Messages;
 using Nethermind.Network.P2P.Subprotocols.Eth.V65;
+using Nethermind.Network.P2P.Subprotocols.Snap.Messages;
 using Nethermind.Network.Rlpx;
 using Nethermind.Network.Rlpx.Handshake;
 using Nethermind.Network.StaticNodes;
@@ -421,6 +422,15 @@ namespace Nethermind.Init.Steps
             _api.MessageSerializationService.Register(receiptsMessageSerializer);
             _api.MessageSerializationService.Register(new Network.P2P.Subprotocols.Eth.V66.Messages.ReceiptsMessageSerializer(receiptsMessageSerializer));
             
+            _api.MessageSerializationService.Register(new GetAccountRangeMessageSerializer());
+            _api.MessageSerializationService.Register(new AccountRangeMessageSerializer());
+            _api.MessageSerializationService.Register(new GetStorageRangesMessageSerializer());
+            _api.MessageSerializationService.Register(new StorageRangesMessageSerializer());
+            _api.MessageSerializationService.Register(new GetByteCodesMessageSerializer());
+            _api.MessageSerializationService.Register(new ByteCodesMessageSerializer());
+            _api.MessageSerializationService.Register(new GetTrieNodesMessageSerializer());
+            _api.MessageSerializationService.Register(new TrieNodesMessageSerializer());
+
             HandshakeService encryptionHandshakeServiceA = new(
                 _api.MessageSerializationService,
                 eciesCipher,
