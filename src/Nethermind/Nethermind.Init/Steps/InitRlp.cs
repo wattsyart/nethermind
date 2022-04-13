@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Nethermind.Api;
 using Nethermind.Core.Attributes;
 using Nethermind.Network;
+using Nethermind.Network.P2P.Subprotocols.Snap.Messages;
 using Nethermind.Serialization.Rlp;
 
 namespace Nethermind.Init.Steps
@@ -41,6 +42,7 @@ namespace Nethermind.Init.Steps
             if (_api.SpecProvider == null) throw new StepDependencyException(nameof(_api.SpecProvider));
             
            Rlp.RegisterDecoders(Assembly.GetAssembly(typeof(NetworkNodeDecoder)));
+           Rlp.RegisterDecoders(Assembly.GetAssembly(typeof(AccountRangeMessage)));
            HeaderDecoder.Eip1559TransitionBlock = _api.SpecProvider.GenesisSpec.Eip1559TransitionBlock;
            
            return Task.CompletedTask;
