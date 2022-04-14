@@ -37,13 +37,14 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
             stream.StartSequence(contentLength);
 
             stream.Encode(message.RequestId);
+            stream.StartSequence(pwasLength);
+
             if (message.PathsWithAccounts == null || message.PathsWithAccounts.Length == 0)
             {
                 stream.EncodeNullObject();
             }
             else
             {
-                stream.StartSequence(pwasLength);
                 for (int i = 0; i < message.PathsWithAccounts.Length; i++)
                 {
                     PathWithAccount pwa = message.PathsWithAccounts[i];
@@ -56,14 +57,14 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap.Messages
                     _decoder.Encode(pwa.Account, stream, accountContentLength);
                 }
             }
-
+            
+            stream.StartSequence(proofsLength);
             if (message.Proofs == null || message.Proofs.Length == 0)
             {
                 stream.EncodeNullObject();
             }
             else
             {
-                stream.StartSequence(proofsLength);
                 for (int i = 0; i < message.Proofs.Length; i++)
                 {
                     stream.Encode(message.Proofs[i]);
