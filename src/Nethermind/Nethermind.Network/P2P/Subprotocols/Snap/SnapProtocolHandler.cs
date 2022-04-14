@@ -198,12 +198,12 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
 
         private void Handle(GetStorageRangeMessage getStorageRangesMessage)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
         private void Handle(GetByteCodesMessage getByteCodesMessage)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
 
         public override void DisconnectProtocol(DisconnectReason disconnectReason, string details)
