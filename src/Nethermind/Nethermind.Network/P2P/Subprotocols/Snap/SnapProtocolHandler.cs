@@ -179,7 +179,7 @@ namespace Nethermind.Network.P2P.Subprotocols.Snap
             {
                 PathWithAccount pathWithAccount = new PathWithAccount(Keccak.Zero, new Account(0, 0, Keccak.Zero, Keccak.Zero));
                 
-                pathWithAccounts.Add(pathWithAccount);
+                // pathWithAccounts.Add(pathWithAccount);
                 AccountRangeMessage accountRangeMessage = new() {
                     RequestId = msg.RequestId,
                     PathsWithAccounts = pathWithAccounts.Count == 0
