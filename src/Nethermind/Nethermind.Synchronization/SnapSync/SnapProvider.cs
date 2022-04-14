@@ -5,9 +5,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
+using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Logging;
+using Nethermind.Serialization.Rlp;
 using Nethermind.State;
 using Nethermind.State.Snap;
 using Nethermind.Trie.Pruning;
@@ -91,6 +93,14 @@ namespace Nethermind.Synchronization.SnapSync
 
                 _progressTracker.NextAccountPath = accounts[accounts.Length - 1].AddressHash;
                 _progressTracker.MoreAccountsToRight = moreChildrenToRight;
+                
+                foreach (PathWithAccount? pathWithAccount in accounts)
+                {
+                    Rlp rlp = pathWithAccount.Account is null ? null : pathWithAccount.Account.IsTotallyEmpty ? Rlp.Encode(Account.TotallyEmpty) : Rlp.Encode(pathWithAccount.Account);
+
+                    _dbProvider.FlatDb.Set(pathWithAccount.AddressHash, rlp.Bytes);
+                    if (pathWithAccount.AddressHash.Bytes[30] == 0 && pathWithAccount.AddressHash.Bytes[31] == 0) _logger.Info($"FLATDB added node {pathWithAccount.AddressHash}");
+                }
             }
             else
             {
