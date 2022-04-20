@@ -18,8 +18,8 @@ namespace Nethermind.Synchronization.SnapSync
     {
         long _testReqCount;
 
-        private const int STORAGE_BATCH_SIZE = 1_200;
-        private const int CODES_BATCH_SIZE = 1_000;
+        private const int STORAGE_BATCH_SIZE = 2_200;
+        private const int CODES_BATCH_SIZE = 2_000;
         private readonly byte[] ACC_PROGRESS_KEY = Encoding.ASCII.GetBytes("AccountProgressKey");
 
         private int _activeAccountRequests;
@@ -72,7 +72,7 @@ namespace Nethermind.Synchronization.SnapSync
 
             SnapSyncBatch request = new();
 
-            if (MoreAccountsToRight && _activeAccountRequests == 0)
+            if (MoreAccountsToRight && _activeAccountRequests == 0 && NextSlotRange.Count < 10 && StoragesToRetrieve.Count < 5 * STORAGE_BATCH_SIZE && CodesToRetrieve.Count < 5 * CODES_BATCH_SIZE)
             {
                 // some contract hardcoded
                 //var path = Keccak.Compute(new Address("0x4c9A3f79801A189D98D3a5A18dD5594220e4d907").Bytes);
