@@ -221,7 +221,7 @@ public class BeaconHeadersSyncTests
                 : lowestHeaderNumber - batch.RequestSize;
             
             BlockHeader? lowestHeader = syncedBlockTree.FindHeader(lowestHeaderNumber, BlockTreeLookupOptions.None);
-            blockTree.LowestInsertedBeaconHeader?.Hash.Should().BeEquivalentTo(lowestHeader?.Hash);
+            blockTree.LowestInsertedBeaconHeader.Should().BeEquivalentTo(lowestHeader);
         }
 
         HeadersSyncBatch result = await ctx.Feed.PrepareRequest();
