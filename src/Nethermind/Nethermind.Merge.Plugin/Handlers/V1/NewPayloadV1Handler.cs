@@ -158,8 +158,8 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             }
 
             _mergeSyncController.StopSyncing();
-            (ValidationResult ValidationResult, string? Message) result =
-                ValidateBlockAndProcess(block, out Block? processedBlock, parentHeader);
+            (ValidationResult ValidationResult, string? Message, Block? ProcessedBlock) result =
+                await ValidateBlockAndProcess(block, parentHeader);
             if ((result.ValidationResult & ValidationResult.AlreadyKnown) != 0 ||
                 result.ValidationResult == ValidationResult.Invalid)
             {
@@ -180,7 +180,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 return NewPayloadV1Result.Syncing;
             }
 
-            if (processedBlock == null)
+            if (result.ProcessedBlock == null)
             {
                 if (_logger.IsInfo) { _logger.Info($"Invalid block processed. Result of {requestStr}"); }
 
@@ -194,11 +194,10 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
             return NewPayloadV1Result.Valid(request.BlockHash);
         }
 
-        private (ValidationResult ValidationResult, string? Message) ValidateBlockAndProcess(Block block,
-            out Block? processedBlock, BlockHeader parent)
+        private async Task<(ValidationResult ValidationResult, string? Message, Block? ProcessedBlock)> ValidateBlockAndProcess(Block block, BlockHeader parent)
         {
             string? validationMessage = null;
-            processedBlock = null;
+            Block? processedBlock = null;
 
             bool isRecentBlock = _latestBlocks.TryGet(block.Hash!, out bool isValid);
             if (isRecentBlock)
@@ -210,14 +209,14 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 }
 
                 return (ValidationResult.AlreadyKnown |
-                        (isValid ? ValidationResult.Valid : ValidationResult.Invalid), validationMessage);
+                        (isValid ? ValidationResult.Valid : ValidationResult.Invalid), validationMessage, processedBlock);
             }
             else
             {
                 processedBlock = _blockTree.FindBlock(block.Hash!, BlockTreeLookupOptions.None);
                 if (processedBlock != null && _blockTree.WasProcessed(processedBlock.Number, processedBlock.Hash))
                 {
-                    return (ValidationResult.Valid | ValidationResult.AlreadyKnown, validationMessage);
+                    return (ValidationResult.Valid | ValidationResult.AlreadyKnown, validationMessage, processedBlock);
                 }
 
                 bool validAndProcessed = ValidateWithBlockValidator(block, parent, out processedBlock);
@@ -226,14 +225,14 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                     if (_processingQueue.IsEmpty)
                     {
                         // processingQueue is empty so we can process the block in synchronous way
-                        _blockTree.SuggestBlock(block, BlockTreeSuggestOptions.None, false);
+                        await _blockTree.SuggestBlockAsync(block, BlockTreeSuggestOptions.None, false);
                         processedBlock = _processor.Process(block, GetProcessingOptions(), NullBlockTracer.Instance);
                     }
                     else
                     {
                         // this is needed for restarts. We have blocks in queue so we should add it to queue and return SYNCING
-                        _blockTree.SuggestBlock(block, BlockTreeSuggestOptions.ShouldProcess);
-                        return (ValidationResult.Syncing, null);
+                        await _blockTree.SuggestBlockAsync(block, BlockTreeSuggestOptions.ShouldProcess);
+                        return (ValidationResult.Syncing, null, processedBlock);
                     }
             
                     if (processedBlock == null)
@@ -249,7 +248,7 @@ namespace Nethermind.Merge.Plugin.Handlers.V1
                 }
 
                 _latestBlocks.Set(block.Hash!, validAndProcessed);
-                return (validAndProcessed ? ValidationResult.Valid : ValidationResult.Invalid, validationMessage);
+                return (validAndProcessed ? ValidationResult.Valid : ValidationResult.Invalid, validationMessage, processedBlock);
             }
         }
 

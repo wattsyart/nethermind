@@ -219,6 +219,7 @@ namespace Nethermind.Consensus.Processing
 
                     try
                     {
+                        _processingCount = 1;
                         _blockQueue.Add(blockRef);
                     }
                     catch (InvalidOperationException)
@@ -247,8 +248,6 @@ namespace Nethermind.Consensus.Processing
             {
                 try
                 {
-                    _processingCount = 1;
-                    
                     if (blockRef.IsInDb || blockRef.Block == null)
                     {
                         throw new InvalidOperationException("Processing loop expects only resolved blocks");
@@ -274,7 +273,8 @@ namespace Nethermind.Consensus.Processing
                 }
                 finally
                 {
-                    _processingCount = 0;
+                    if (_blockQueue.Count == 0)
+                        _processingCount = 0;
                 }
 
                 if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
