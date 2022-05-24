@@ -51,6 +51,8 @@ namespace Nethermind.Consensus.Processing
         private readonly BlockingCollection<BlockRef> _blockQueue = new(new ConcurrentQueue<BlockRef>(),
             MaxProcessingQueueSize);
 
+        private int _queueCount;
+
         private readonly ProcessingStats _stats;
 
         private CancellationTokenSource? _loopCancellationSource;
@@ -61,7 +63,6 @@ namespace Nethermind.Consensus.Processing
         private int _currentRecoveryQueueSize;
         private readonly CompositeBlockTracer _compositeBlockTracer = new();
         private readonly Stopwatch _stopwatch = new();
-        private int _processingCount;
 
         /// <summary>
         /// 
@@ -123,6 +124,7 @@ namespace Nethermind.Consensus.Processing
                 try
                 {
                     _recoveryQueue.Add(blockRef);
+                    Interlocked.Increment(ref _queueCount);
                     if (_logger.IsTrace)
                         _logger.Trace($"A new block {block.ToString(Block.Format.Short)} enqueued for processing.");
                 }
@@ -223,12 +225,14 @@ namespace Nethermind.Consensus.Processing
                     }
                     catch (InvalidOperationException)
                     {
+                        Interlocked.Decrement(ref _queueCount);
                         if (_logger.IsDebug) _logger.Debug($"Recovery loop stopping.");
                         return;
                     }
                 }
                 else
                 {
+                    Interlocked.Decrement(ref _queueCount);
                     if (_logger.IsTrace)
                         _logger.Trace(
                             "Block was removed from the DB and cannot be recovered (it belonged to an invalid branch). Skipping.");
@@ -247,8 +251,6 @@ namespace Nethermind.Consensus.Processing
             {
                 try
                 {
-                    _processingCount = 1;
-                    
                     if (blockRef.IsInDb || blockRef.Block == null)
                     {
                         throw new InvalidOperationException("Processing loop expects only resolved blocks");
@@ -274,7 +276,7 @@ namespace Nethermind.Consensus.Processing
                 }
                 finally
                 {
-                    _processingCount = 0;
+                    Interlocked.Decrement(ref _queueCount);
                 }
 
                 if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
@@ -294,7 +296,7 @@ namespace Nethermind.Consensus.Processing
 
         public event EventHandler? ProcessingQueueEmpty;
 
-        int IBlockProcessingQueue.Count => _blockQueue.Count + _recoveryQueue.Count + _processingCount;
+        int IBlockProcessingQueue.Count => _queueCount;
 
         public Block? Process(Block suggestedBlock, ProcessingOptions options, IBlockTracer tracer)
         {
