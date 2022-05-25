@@ -313,6 +313,13 @@ namespace Nethermind.Blockchain.Test
                 _recoveryStep.Allow(block.Hash);
                 return this;
             }
+            
+            public ProcessingTestContext CountIs(int expectedCount)
+            {
+                var count = ((IBlockProcessingQueue)_processor).Count;
+                Assert.AreEqual(count, expectedCount);
+                return this;
+            }
 
             public ProcessingTestContext ThenRecoveredFail(Block block)
             {
@@ -655,6 +662,34 @@ namespace Nethermind.Blockchain.Test
                 .IsProcessingBlocks(false, 10)
                 .Sleep(1000)
                 .IsProcessingBlocks(false, 10);
+        }
+        
+        [Test]
+        public void QueueCount_returns_correctly()
+        {
+            var test = 
+            When.ProcessingBlocks
+                .FullyProcessed(_block0).BecomesGenesis()
+                .Suggested(_block1D2)
+                .Recovered(_block1D2)
+                .CountIs(1)
+                
+                .Suggested(_block2D4)
+                .Suggested(_block3D6)
+                .Recovered(_block2D4)
+                .Recovered(_block3D6)
+                .CountIs(3)
+                
+                .Processed(_block1D2)
+                .BecomesNewHead()
+                .Sleep(10)
+                .CountIs(2)
+                .ProcessedFail(_block2D4)
+                .IsDeletedAsInvalid()
+                .ProcessedSkipped(_block3D6)
+                .IsDeletedAsInvalid()
+                .Sleep(10)
+                .CountIs(0);
         }
     }
 }
