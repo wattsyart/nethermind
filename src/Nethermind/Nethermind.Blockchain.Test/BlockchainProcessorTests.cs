@@ -182,10 +182,14 @@ namespace Nethermind.Blockchain.Test
 
             private BlockTree _blockTree;
             private AutoResetEvent _resetEvent;
+            private AutoResetEvent _queueEmptyResetEvent;
             private BlockProcessorMock _blockProcessor;
             private RecoveryStepMock _recoveryStep;
             private BlockchainProcessor _processor;
             private ILogger _logger;
+            private Keccak _headBefore;
+            private int _processingQueueEmptyFired;
+            public const int ProcessingWait = 2000;
 
             public ProcessingTestContext(bool startProcessor)
             {
@@ -200,6 +204,13 @@ namespace Nethermind.Blockchain.Test
                 _recoveryStep = new RecoveryStepMock(_logManager);
                 _processor = new BlockchainProcessor(_blockTree, _blockProcessor, _recoveryStep, LimboLogs.Instance, BlockchainProcessor.Options.Default);
                 _resetEvent = new AutoResetEvent(false);
+                _queueEmptyResetEvent = new AutoResetEvent(false);
+                
+                _processor.ProcessingQueueEmpty += (_, _) =>
+                {
+                    _processingQueueEmptyFired++;
+                    _queueEmptyResetEvent.Set();
+                };
 
                 _blockTree.NewHeadBlock += (sender, args) =>
                 {
@@ -240,7 +251,7 @@ namespace Nethermind.Blockchain.Test
 
                 _logger.Info($"Waiting for {block.ToString(Block.Format.Short)} to process");
                 _blockProcessor.Allow(block.Hash);
-                processedEvent.WaitOne(AfterBlock.ProcessingWait);
+                processedEvent.WaitOne(ProcessingWait);
                 Assert.True(wasProcessed, $"Expected this block to get processed but it was not: {block.ToString(Block.Format.Short)}");
 
                 return new AfterBlock(_logManager, this, block);
@@ -270,7 +281,7 @@ namespace Nethermind.Blockchain.Test
 
                 _logger.Info($"Waiting for {block.ToString(Block.Format.Short)} to fail processing");
                 _blockProcessor.AllowToFail(block.Hash);
-                processedEvent.WaitOne(AfterBlock.ProcessingWait);
+                processedEvent.WaitOne(ProcessingWait);
                 Assert.True(wasProcessed, $"Block was never processed {block.ToString(Block.Format.Short)}");
                 Assert.AreEqual(_headBefore, _blockTree.Head?.Hash, $"Processing did not fail - {block.ToString(Block.Format.Short)} became a new head block");
                 _logger.Info($"Finished waiting for {block.ToString(Block.Format.Short)} to fail processing");
@@ -348,12 +359,16 @@ namespace Nethermind.Blockchain.Test
                     .ProcessedFail(block);
             }
 
-            private Keccak _headBefore;
+            public ProcessingTestContext QueueIsEmpty(int count)
+            {
+                _queueEmptyResetEvent.WaitOne(ProcessingWait);
+                Assert.AreEqual(count, _processingQueueEmptyFired, $"Processing queue fired {_processingQueueEmptyFired} times.");
+                return this;
+            }
 
             public class AfterBlock
             {
                 private ILogger _logger;
-                public const int ProcessingWait = 2000;
                 public const int IgnoreWait = 200;
                 private readonly Block _block;
 
@@ -667,19 +682,23 @@ namespace Nethermind.Blockchain.Test
         [Test]
         public void QueueCount_returns_correctly()
         {
-            var test = 
             When.ProcessingBlocks
-                .FullyProcessed(_block0).BecomesGenesis()
+                .QueueIsEmpty(1)
+                .FullyProcessed(_block0)
+                .BecomesGenesis()
+                .QueueIsEmpty(2)
+                
+                
                 .Suggested(_block1D2)
                 .Recovered(_block1D2)
                 .CountIs(1)
-                
+
                 .Suggested(_block2D4)
                 .Suggested(_block3D6)
                 .Recovered(_block2D4)
                 .Recovered(_block3D6)
                 .CountIs(3)
-                
+
                 .Processed(_block1D2)
                 .BecomesNewHead()
                 .Sleep(10)
@@ -689,7 +708,8 @@ namespace Nethermind.Blockchain.Test
                 .ProcessedSkipped(_block3D6)
                 .IsDeletedAsInvalid()
                 .Sleep(10)
-                .CountIs(0);
+                .CountIs(0)
+                .QueueIsEmpty(3);
         }
     }
 }
