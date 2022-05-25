@@ -20,10 +20,12 @@ using Nethermind.Blockchain;
 using Nethermind.Blockchain.Synchronization;
 using Nethermind.Core;
 using Nethermind.Core.Test.Builders;
+using Nethermind.Db;
 using Nethermind.Db.Blooms;
 using Nethermind.Int256;
 using Nethermind.Logging;
 using Nethermind.Merge.Plugin.Synchronization;
+using Nethermind.Serialization.Rlp;
 using Nethermind.Specs;
 using NUnit.Framework;
 
@@ -157,7 +159,7 @@ public partial class BlockTreeTests
                 private BlockTreeBuilder? _syncedTreeBuilder;
                 private IChainLevelHelper? _chainLevelHelper;
 
-                public ScenarioBuilder WithBlockTrees(int notSyncedTreeSize, int syncedTreeSize = -1)
+                public ScenarioBuilder WithBlockTrees(int notSyncedTreeSize, int syncedTreeSize = -1, bool moveBlocksToMainChain = true)
                 {
                     NotSyncedTreeBuilder = Build.A.BlockTree().OfChainLength(notSyncedTreeSize);
                     NotSyncedTree = new(
@@ -187,7 +189,8 @@ public partial class BlockTreeTests
                     }
 
                     _chainLevelHelper = new ChainLevelHelper(NotSyncedTree, new SyncConfig(), LimboLogs.Instance);
-                    NotSyncedTree.NewBestSuggestedBlock += OnNewBestSuggestedBlock;
+                    if (moveBlocksToMainChain)
+                        NotSyncedTree.NewBestSuggestedBlock += OnNewBestSuggestedBlock;
                     return this;
                 }
                 
@@ -198,10 +201,19 @@ public partial class BlockTreeTests
 
                 public ScenarioBuilder InsertBeaconPivot(long num)
                 {
-                    Block? beaconBlock = SyncedTree!.FindBlock(num, BlockTreeLookupOptions.None);
-                    AddBlockResult insertResult = NotSyncedTree!.Insert(beaconBlock!, true,
+                    Block? beaconBlock = SyncedTree.FindBlock(num, BlockTreeLookupOptions.None);
+                    AddBlockResult insertResult = NotSyncedTree.Insert(beaconBlock!, true,
                         BlockTreeInsertOptions.BeaconBlockInsert);
                     Assert.AreEqual(AddBlockResult.Added, insertResult);
+                    NotSyncedTreeBuilder.MetadataDb.Set(MetadataDbKeys.LowestInsertedBeaconHeaderHash, Rlp.Encode(beaconBlock!.Hash).Bytes);
+                    NotSyncedTreeBuilder.MetadataDb.Set(MetadataDbKeys.BeaconSyncPivotNumber, Rlp.Encode(beaconBlock.Number ).Bytes);
+                    return this;
+                }
+
+                public ScenarioBuilder ClearBeaconPivot()
+                {
+                    NotSyncedTreeBuilder.MetadataDb.Delete(MetadataDbKeys.BeaconSyncPivotNumber);
+
                     return this;
                 }
 
@@ -311,6 +323,17 @@ public partial class BlockTreeTests
                         Assert.AreEqual(expectedTotalDifficulty, NotSyncedTree.BestSuggestedBody.TotalDifficulty);
                     return this;
                 }
+                
+                public ScenarioBuilder AssertMetadata(int startNumber, int finalNumber, BlockMetadata? metadata)
+                {
+                    for (int i = startNumber; i < finalNumber; ++i)
+                    {
+                        ChainLevelInfo? level = NotSyncedTree.FindLevel(i);
+                        Assert.AreEqual(metadata, level?.BeaconMainChainBlock?.Metadata ?? BlockMetadata.None, $"Block number {i}");
+                    }
+
+                    return this;
+                }
 
                 public ScenarioBuilder AssertLowestInsertedBeaconHeader(long expected)
                 {
@@ -318,6 +341,22 @@ public partial class BlockTreeTests
                     Assert.IsNotNull(NotSyncedTree!.LowestInsertedBeaconHeader);
                     Assert.AreEqual(expected,NotSyncedTree!.LowestInsertedBeaconHeader!.Number);
                     Console.WriteLine("LowestInsertedBeaconHeader:"+NotSyncedTree!.LowestInsertedBeaconHeader!.Number);
+                    return this;
+                }
+                
+                public ScenarioBuilder AssertBestBeaconHeader(long expected)
+                {
+                    Assert.IsNotNull(NotSyncedTree);
+                    Assert.IsNotNull(NotSyncedTree.BestSuggestedBeaconHeader);
+                    Assert.AreEqual(expected, NotSyncedTree.BestSuggestedBeaconHeader?.Number);
+                    return this;
+                }
+
+                public ScenarioBuilder AssertBestBeaconBody(long expected)
+                {
+                    Assert.IsNotNull(NotSyncedTree);
+                    Assert.IsNotNull(NotSyncedTree.BestSuggestedBeaconBody);
+                    Assert.AreEqual(expected, NotSyncedTree.BestSuggestedBeaconBody?.Number);
                     return this;
                 }
 
@@ -369,6 +408,8 @@ public partial class BlockTreeTests
             .WithBlockTrees(10, 20)
             .InsertBeaconPivot(14)
             .Restart()
+            .AssertBestBeaconBody(14)
+            .AssertBestBeaconHeader(14)
             .AssertBestKnownNumber(9)
             .AssertBestSuggestedHeader(9)
             .AssertBestSuggestedBody(9);
@@ -382,7 +423,12 @@ public partial class BlockTreeTests
             .InsertBeaconPivot(7)
             .InsertHeaders(6, 6)
             .Restart()
-            .AssertLowestInsertedBeaconHeader(6);
+            .AssertBestBeaconBody(7)
+            .AssertBestBeaconHeader(7)
+            .AssertLowestInsertedBeaconHeader(6)
+            .AssertBestKnownNumber(3)
+            .AssertBestSuggestedHeader(3)
+            .AssertBestSuggestedBody(3);
     }
     
     [Test]
@@ -393,20 +439,28 @@ public partial class BlockTreeTests
             .InsertBeaconPivot(7)
             .InsertHeaders(4, 6)
             .Restart()
-            .AssertLowestInsertedBeaconHeader(4);
+            .AssertBestBeaconBody(7)
+            .AssertBestBeaconHeader(7)
+            .AssertLowestInsertedBeaconHeader(4)
+            .AssertBestKnownNumber(3)
+            .AssertBestSuggestedHeader(3)
+            .AssertBestSuggestedBody(3);
     }
     
     [Test]
     public void pointers_are_set_on_restart_during_filling_block_gap()
     {
-        BlockTreeTestScenario.ScenarioBuilder scenario = BlockTreeTestScenario.GoesLikeThis()
+         BlockTreeTestScenario.ScenarioBuilder scenario = BlockTreeTestScenario.GoesLikeThis()
             .WithBlockTrees(4, 10)
             .InsertBeaconPivot(7)
             .InsertHeaders(4, 6)
             .SuggestBlocks(4, 4)
             .Restart()
-            .AssertBestSuggestedBody(4)
-            .AssertLowestInsertedBeaconHeader(4);
+            .AssertBestBeaconBody(7)
+            .AssertBestBeaconHeader(7)
+            .AssertLowestInsertedBeaconHeader(4)
+            .AssertBestSuggestedHeader(4)
+            .AssertBestSuggestedBody(4);
     }
     
     [Test]
@@ -416,9 +470,14 @@ public partial class BlockTreeTests
             .WithBlockTrees(4, 10)
             .InsertBeaconPivot(7)
             .InsertHeaders(4, 6)
-            .SuggestBlocks(4, 6)
+            .SuggestBlocks(4, 7)
+            .ClearBeaconPivot()
             .Restart()
-            .AssertBestSuggestedBody(6)
+            .AssertBestBeaconBody(0)
+            .AssertBestBeaconHeader(0)
+            .AssertLowestInsertedBeaconHeader(4)
+            .AssertBestSuggestedHeader(7)
+            .AssertBestSuggestedBody(7)
             .AssertLowestInsertedBeaconHeader(4);
     }
     
@@ -431,6 +490,9 @@ public partial class BlockTreeTests
             .InsertHeaders(5, 6)
             .InsertBeaconBlocks(7, 9)
             .Restart()
+            .AssertBestBeaconBody(9)
+            .AssertBestBeaconHeader(9)
+            .AssertLowestInsertedBeaconHeader(5)
             .AssertBestKnownNumber(3)
             .AssertBestSuggestedHeader(3)
             .AssertBestSuggestedBody(3);
