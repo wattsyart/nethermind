@@ -253,6 +253,7 @@ namespace Nethermind.Synchronization.Peers
 
         public void RefreshTotalDifficulty(ISyncPeer syncPeer, Keccak blockHash)
         {
+            _logger.Info("REFRESH TD");
             RefreshTotalDiffTask task = new(blockHash, syncPeer);
             _peerRefreshQueue.Add(task);
         }
