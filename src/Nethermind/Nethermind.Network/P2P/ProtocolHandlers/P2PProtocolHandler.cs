@@ -144,7 +144,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
                         string reason = Enum.IsDefined(typeof(DisconnectReason), (byte) disconnectMessage.Reason)
                             ? ((DisconnectReason) disconnectMessage.Reason).ToString()
                             : disconnectMessage.Reason.ToString();
-                        Logger.Trace($"{Session} Received disconnect ({reason}) on {Session.RemotePort}");
+                        Logger.Info($"{Session} DISCONNECT to us: Received disconnect ({reason}) on {Session.RemotePort}");
                     }
 
                     Close(disconnectMessage.Reason);
@@ -304,6 +304,7 @@ namespace Nethermind.Network.P2P.ProtocolHandlers
                 Logger.Trace($"Sending disconnect {disconnectReason} ({details}) to {Session.Node:s}");
             DisconnectMessage message = new(disconnectReason);
             Send(message);
+            Logger.Info($"DISCONNECT from us: Local {disconnectReason} {details}");
             if(NetworkDiagTracer.IsEnabled)
                 NetworkDiagTracer.ReportDisconnect(Session.Node.Address, $"Local {disconnectReason} {details}");
         }
