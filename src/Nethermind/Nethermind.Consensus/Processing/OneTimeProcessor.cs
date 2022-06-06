@@ -75,6 +75,7 @@ namespace Nethermind.Consensus.Processing
         public event EventHandler<BlockProcessedEventArgs> BlockProcessed;
         public event EventHandler<BlockProcessedEventArgs> BlockInvalid;
         public event EventHandler<InvalidBlockException>? OnInvalidBlock;
+        public event EventHandler<BlockEventArgs>? OnSkippedBlock;
 #pragma warning restore 67
 
         public void Dispose()
