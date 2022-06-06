@@ -35,5 +35,6 @@ namespace Nethermind.Consensus.Processing
         bool IsProcessingBlocks(ulong? maxProcessingInterval);
         
         event EventHandler<InvalidBlockException> OnInvalidBlock;
+        event EventHandler<BlockEventArgs> OnSkippedBlock;
     }
 }

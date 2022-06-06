@@ -28,7 +28,6 @@ using Nethermind.Consensus.Tracing;
 using Nethermind.Consensus.Validators;
 using Nethermind.Core;
 using Nethermind.Core.Extensions;
-using Nethermind.Evm.Tracing;
 using Nethermind.Logging;
 using Nethermind.Serialization.Rlp;
 
@@ -71,7 +70,7 @@ namespace Nethermind.Hive
         {
             if (_logger.IsInfo) _logger.Info("HIVE initialization started");
             _blockTree.BlockAddedToMain += BlockTreeOnBlockAddedToMain;
-            _blockchainProcessor.OnInvalidBlock += OnInvalidBlock;
+            _blockchainProcessor.OnSkippedBlock += OnSkippedBlock;
             IHiveConfig hiveConfig = _configurationProvider.GetConfig<IHiveConfig>();
 
             ListEnvironmentVariables();
@@ -79,7 +78,7 @@ namespace Nethermind.Hive
             await InitializeChain(hiveConfig.ChainFile);
 
             _blockTree.BlockAddedToMain -= BlockTreeOnBlockAddedToMain;
-            _blockchainProcessor.OnInvalidBlock -= OnInvalidBlock;
+            _blockchainProcessor.OnSkippedBlock += OnSkippedBlock;
 
             if (_logger.IsInfo) _logger.Info("HIVE initialization completed");
         }
@@ -90,9 +89,9 @@ namespace Nethermind.Hive
             _resetEvent.Release(1);
         }
         
-        private void OnInvalidBlock(object? sender, InvalidBlockException e)
+        private void OnSkippedBlock(object? sender, BlockEventArgs e)
         {
-            _logger.Info($"HIVE block invalid: {e.InvalidBlockHash}");
+            _logger.Info($"HIVE block skipped: {e.Block.ToString(Block.Format.Short)}");
             _resetEvent.Release(1);
         }
 

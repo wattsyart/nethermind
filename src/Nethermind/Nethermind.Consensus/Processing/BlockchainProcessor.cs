@@ -67,6 +67,7 @@ namespace Nethermind.Consensus.Processing
         private Stopwatch _stopwatch = new();
         
         public event EventHandler<InvalidBlockException> OnInvalidBlock;
+        public event EventHandler<BlockEventArgs> OnSkippedBlock;
 
         /// <summary>
         /// 
@@ -298,6 +299,7 @@ namespace Nethermind.Consensus.Processing
         {
             if (!RunSimpleChecksAheadOfProcessing(suggestedBlock, options))
             {
+                OnSkippedBlock?.Invoke(this, new BlockEventArgs(suggestedBlock));
                 return null;
             }
 
@@ -316,6 +318,7 @@ namespace Nethermind.Consensus.Processing
                 if (_logger.IsDebug)
                     _logger.Debug(
                         $"Skipped processing of {suggestedBlock.ToString(Block.Format.FullHashAndNumber)}, Head = {_blockTree.Head?.Header?.ToString(BlockHeader.Format.Short)}, total diff = {totalDifficulty}, head total diff = {_blockTree.Head?.TotalDifficulty}");
+                OnSkippedBlock?.Invoke(this, new BlockEventArgs(suggestedBlock));
                 return null;
             }
 
@@ -326,6 +329,7 @@ namespace Nethermind.Consensus.Processing
             Block[]? processedBlocks = ProcessBranch(processingBranch, suggestedBlock, options, tracer);
             if (processedBlocks == null)
             {
+                OnSkippedBlock?.Invoke(this, new BlockEventArgs(suggestedBlock));
                 return null;
             }
 
