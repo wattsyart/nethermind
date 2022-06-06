@@ -23,6 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nethermind.Blockchain;
 using Nethermind.Config;
+using Nethermind.Consensus.Processing;
 using Nethermind.Consensus.Tracing;
 using Nethermind.Consensus.Validators;
 using Nethermind.Core;
@@ -36,6 +37,7 @@ namespace Nethermind.Hive
     public class HiveRunner
     {
         private readonly IBlockTree _blockTree;
+        private readonly IBlockchainProcessor _blockchainProcessor;
         private readonly ILogger _logger;
         private readonly IConfigProvider _configurationProvider;
         private readonly IFileSystem _fileSystem;
@@ -45,6 +47,7 @@ namespace Nethermind.Hive
 
         public HiveRunner(
             IBlockTree blockTree,
+            IBlockchainProcessor blockchainProcessor,
             IConfigProvider configurationProvider,
             ILogger logger,
             IFileSystem fileSystem,
@@ -53,6 +56,7 @@ namespace Nethermind.Hive
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
+            _blockchainProcessor = blockchainProcessor ?? throw new ArgumentNullException(nameof(blockchainProcessor));
             _configurationProvider =
                 configurationProvider ?? throw new ArgumentNullException(nameof(configurationProvider));
             _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
@@ -67,6 +71,7 @@ namespace Nethermind.Hive
         {
             if (_logger.IsInfo) _logger.Info("HIVE initialization started");
             _blockTree.BlockAddedToMain += BlockTreeOnBlockAddedToMain;
+            _blockchainProcessor.OnInvalidBlock += OnInvalidBlock;
             IHiveConfig hiveConfig = _configurationProvider.GetConfig<IHiveConfig>();
 
             ListEnvironmentVariables();
@@ -74,6 +79,7 @@ namespace Nethermind.Hive
             await InitializeChain(hiveConfig.ChainFile);
 
             _blockTree.BlockAddedToMain -= BlockTreeOnBlockAddedToMain;
+            _blockchainProcessor.OnInvalidBlock -= OnInvalidBlock;
 
             if (_logger.IsInfo) _logger.Info("HIVE initialization completed");
         }
@@ -81,6 +87,12 @@ namespace Nethermind.Hive
         private void BlockTreeOnBlockAddedToMain(object? sender, BlockEventArgs e)
         {
             _logger.Info($"HIVE block added to main: {e.Block.ToString(Block.Format.Short)}");
+            _resetEvent.Release(1);
+        }
+        
+        private void OnInvalidBlock(object? sender, InvalidBlockException e)
+        {
+            _logger.Info($"HIVE block invalid: {e.InvalidBlockHash}");
             _resetEvent.Release(1);
         }
 

@@ -101,6 +101,7 @@ namespace Nethermind.Hive
 
                 HiveRunner hiveRunner = new(
                     _api.BlockTree,
+                    _api.BlockchainProcessor,
                     _api.ConfigProvider,
                     _api.LogManager.GetClassLogger(),
                     _api.FileSystem,
