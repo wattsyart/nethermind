@@ -48,27 +48,18 @@ public partial class BlockTreeTests
             new SyncConfig(),
             LimboLogs.Instance);
         
+        BlockTreeBuilder syncedTreeBuilder = Build.A.BlockTree().OfChainLength(syncedTreeSize);
         BlockTree syncedTree = new(
-            treeBuilder.BlocksDb,
-            treeBuilder.HeadersDb,
-            treeBuilder.BlockInfoDb,
-            treeBuilder.MetadataDb,
-            treeBuilder.ChainLevelInfoRepository,
+            syncedTreeBuilder.BlocksDb,
+            syncedTreeBuilder.HeadersDb,
+            syncedTreeBuilder.BlockInfoDb,
+            syncedTreeBuilder.MetadataDb,
+            syncedTreeBuilder.ChainLevelInfoRepository,
             MainnetSpecProvider.Instance,
             NullBloomStorage.Instance,
             new SyncConfig(),
             LimboLogs.Instance);
-
-        Block parent = syncedTree.Head!;
-        for (int i = 0; i < syncedTreeSize - notSyncedTreeSize; ++i)
-        {
-            Block block = Build.A.Block.WithNumber(parent!.Number + 1).WithParent(parent).TestObject;
-            AddBlockResult addBlockResult = syncedTree.SuggestBlock(block);
-            Assert.AreEqual(AddBlockResult.Added, addBlockResult);
-
-            parent = block;
-        }
-
+        
         return (notSyncedTree, syncedTree);
     }
 
@@ -454,7 +445,7 @@ public partial class BlockTreeTests
             .WithBlockTrees(4, 30)
             .InsertBeaconPivot(7)
             .InsertHeaders(4, 6)
-            .InsertBeaconBlocks(7, 28)
+            .InsertBeaconBlocks(8, 28)
             .SuggestBlocks(4, 25)
             .Restart()
             .AssertBestBeaconHeader(28)
@@ -489,7 +480,7 @@ public partial class BlockTreeTests
             .WithBlockTrees(4, 10)
             .InsertBeaconPivot(7)
             .InsertHeaders(5, 6)
-            .InsertBeaconBlocks(7, 9)
+            .InsertBeaconBlocks(8, 9)
             .Restart()
             .AssertBestBeaconBody(9)
             .AssertBestBeaconHeader(9)

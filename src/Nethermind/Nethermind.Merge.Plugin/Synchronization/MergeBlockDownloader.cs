@@ -104,33 +104,54 @@ namespace Nethermind.Merge.Plugin.Synchronization
 
             bool HasMoreToSync()
                 => currentNumber < _blockTree.BestKnownBeaconNumber &&
-                   bestPeer.HeadNumber > _blockTree.BestKnownNumber;
+                   bestPeer.HeadNumber > currentNumber;
+
+            bool foundBeaconBlocks = false;
 
             while (HasMoreToSync())
             {
                 if (_logger.IsDebug)
                     _logger.Debug($"Continue full sync with {bestPeer} (our best {_blockTree.BestKnownNumber})");
+
+                long upperDownloadBoundary = _blockTree.BestKnownBeaconNumber;
+                long blocksLeft = upperDownloadBoundary - currentNumber;
+                int headersToProcess = (int)Math.Min(blocksLeft + 1, _syncBatchSize.Current);
+                if (headersToProcess <= 1)
+                {
+                    break;
+                }
                 
-                int headersToRequest = Math.Min(_syncBatchSize.Current, bestPeer.MaxHeadersPerRequest());
+                int requestSize = Math.Min(headersToProcess, bestPeer.MaxHeadersPerRequest());
+
                 if (_logger.IsTrace)
                     _logger.Trace(
-                        $"Full sync request {currentNumber}+{headersToRequest} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {currentNumber} and asking for {headersToRequest} more.");
+                        $"Full sync request {currentNumber}+{requestSize} to peer {bestPeer} with {bestPeer.HeadNumber} blocks. Got {currentNumber} and asking for {requestSize} more.");
 
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
-                Block[]? blocks = null;
-                TxReceipt[]?[]? receipts = null;
+                Block[]? blocks;
+                TxReceipt[]?[]? receipts;
                 if (_logger.IsTrace)
                     _logger.Trace(
-                        $"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, HeaderToRequest: {headersToRequest}");
+                        $"Downloading blocks from peer. CurrentNumber: {currentNumber}, BeaconPivot: {_beaconPivot.PivotNumber}, BestPeer: {bestPeer}, RequestSize: {requestSize}");
                 
-                BlockHeader[]? headers = _chainLevelHelper.GetNextHeaders(headersToRequest);
+                BlockHeader[] headers = _chainLevelHelper.GetNextHeaders(requestSize);
                 if (headers == null || headers.Length == 0)
                     break;
+                
                 BlockDownloadContext context = new(_specProvider, bestPeer, headers, downloadReceipts,
-                    _receiptsRecovery);
-
+                _receiptsRecovery);
+                
                 if (cancellation.IsCancellationRequested) return blocksSynced; // check before every heavy operation
-                await RequestBodies(bestPeer, cancellation, context);
+
+                if (foundBeaconBlocks) {
+                    _chainLevelHelper.SetNextBlocks(requestSize, context);
+                }
+                else
+                {
+                    await RequestBodies(bestPeer, cancellation, context);
+                }
+                blocks = context.Blocks;
+                if (_chainLevelHelper.IsBeaconBlock(blocks[^1].Number)) foundBeaconBlocks = true;
 
                 if (downloadReceipts)
                 {
@@ -144,8 +165,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
                 {
                     _syncBatchSize.Expand();
                 }
-
-                blocks = context.Blocks;
+                
                 receipts = context.ReceiptsForBlocks;
 
                 if (blocks == null || blocks.Length == 0)
@@ -182,22 +202,19 @@ namespace Nethermind.Merge.Plugin.Synchronization
                     bool blockExists =
                         _blockTree.FindBlock(currentBlock.Hash, BlockTreeLookupOptions.TotalDifficultyNotNeeded) !=
                         null;
-                    bool isKnownBlock = _blockTree.IsKnownBlock(currentBlock.Number, currentBlock.Hash) != null;
+                    bool isKnownBeaconBlock = _blockTree.IsKnownBeaconBlock(currentBlock.Number, currentBlock.Hash) != null;
                     BlockTreeSuggestOptions suggestOptions =
                         shouldProcess ? BlockTreeSuggestOptions.ShouldProcess : BlockTreeSuggestOptions.None;
                     if (_logger.IsTrace)
                         _logger.Trace(
-                            $"Current block {currentBlock}, BlockExists {blockExists} BeaconPivot: {_beaconPivot.PivotNumber}, IsKnownBlock: {isKnownBlock}");
-
-
-                    if (blockExists == false && isKnownBlock)
-                        _blockTree.Insert(currentBlock);
-                    if (isKnownBlock && shouldProcess)
+                            $"Current block {currentBlock}, BlockExists {blockExists} BeaconPivot: {_beaconPivot.PivotNumber}, IsKnownBlock: {isKnownBeaconBlock}");
+                    
+                    if (isKnownBeaconBlock)
                         suggestOptions |= BlockTreeSuggestOptions.FillBeaconBlock;
                     
                     if (_logger.IsTrace)
                         _logger.Trace(
-                            $"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBlock {isKnownBlock} ShouldProcess: {shouldProcess}");
+                            $"MergeBlockDownloader - SuggestBlock {currentBlock}, IsKnownBeaconBlock {isKnownBeaconBlock} ShouldProcess: {shouldProcess}");
                     if (HandleAddResult(bestPeer, currentBlock.Header, blockIndex == 0,
                             _blockTree.SuggestBlock(currentBlock, suggestOptions)))
                     {
@@ -232,7 +249,7 @@ namespace Nethermind.Merge.Plugin.Synchronization
 
                     currentNumber += 1;
                 }
-
+                
                 if (blocksSynced > 0)
                 {
                     _syncReport.FullSyncBlocksDownloaded.Update(_blockTree.BestSuggestedHeader?.Number ?? 0);
