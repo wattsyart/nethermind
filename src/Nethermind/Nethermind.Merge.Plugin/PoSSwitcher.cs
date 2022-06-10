@@ -64,6 +64,10 @@ namespace Nethermind.Merge.Plugin
         private Keccak _finalizedBlockHash = Keccak.Zero;
         private bool _terminalBlockExplicitSpecified;
         private UInt256? _finalTotalDifficulty;
+        
+        // Invalid terminal block is handled specially from invalid chain as invalid terminal block may stem from
+        // misconfiguration and InvalidChainTracker only track recent error.
+        private string? _invalidTerminalBlockError;
 
         public PoSSwitcher(
             IMergeConfig mergeConfig,
@@ -89,11 +93,10 @@ namespace Nethermind.Merge.Plugin
             LoadFinalizedBlockHash();
             _specProvider.UpdateMergeTransitionInfo(_firstPoSBlockNumber, _mergeConfig.TerminalTotalDifficultyParsed);
             LoadFinalTotalDifficulty();
+            
+            _hasEverReachedTerminalDifficulty = LoadBooleanFromDb(MetadataDbKeys.HasReachedTerminalBlockFlag) ?? false;
 
-            if (_terminalBlockNumber != null || _finalTotalDifficulty != null)
-                _hasEverReachedTerminalDifficulty = true;
-
-            if (_terminalBlockNumber == null)
+            if (!_hasEverReachedTerminalDifficulty)
                 _blockTree.NewHeadBlock += CheckIfTerminalBlockReached;
 
             if (_logger.IsInfo)
@@ -126,6 +129,7 @@ namespace Nethermind.Merge.Plugin
         public bool IsTerminalBlock(BlockHeader header)
         {
             bool isTerminalBlock = false;
+            
             bool ttdRequirement = header.TotalDifficulty >= TerminalTotalDifficulty;
             if (ttdRequirement && header.IsGenesis)
                 return true;
@@ -141,20 +145,27 @@ namespace Nethermind.Merge.Plugin
 
         public bool TryUpdateTerminalBlock(BlockHeader header)
         {
-            if (_terminalBlockExplicitSpecified || TransitionFinished || IsTerminalBlock(header) == false)
+            if (TransitionFinished || !IsTerminalBlock(header))
+            {
                 return false;
+            }
+            if (!_terminalBlockExplicitSpecified)
+            {
+                _terminalBlockNumber = header.Number;
+                _terminalBlockHash = header.Hash;
+                _metadataDb.Set(MetadataDbKeys.TerminalPoWNumber, Rlp.Encode(_terminalBlockNumber.Value).Bytes);
+                _metadataDb.Set(MetadataDbKeys.TerminalPoWHash, Rlp.Encode(_terminalBlockHash).Bytes);
+            }
 
-            _terminalBlockNumber = header.Number;
-            _terminalBlockHash = header.Hash;
-            _metadataDb.Set(MetadataDbKeys.TerminalPoWNumber, Rlp.Encode(_terminalBlockNumber.Value).Bytes);
-            _metadataDb.Set(MetadataDbKeys.TerminalPoWHash, Rlp.Encode(_terminalBlockHash).Bytes);
+            _invalidTerminalBlockError = null;
             _firstPoSBlockNumber = header.Number + 1;
             _specProvider.UpdateMergeTransitionInfo(_firstPoSBlockNumber.Value);
-
+            
             if (_hasEverReachedTerminalDifficulty == false)
             {
                 TerminalBlockReached?.Invoke(this, EventArgs.Empty);
                 _hasEverReachedTerminalDifficulty = true;
+                _metadataDb.Set(MetadataDbKeys.HasReachedTerminalBlockFlag, Rlp.Encode(true).Bytes);
                 if (_logger.IsInfo) _logger.Info($"Reached terminal block {header}");
             }
             else if (_logger.IsInfo) _logger.Info($"Updated terminal block {header}");
@@ -195,6 +206,11 @@ namespace Nethermind.Merge.Plugin
                 isTerminal = false;
                 isPostMerge = true;
             }
+            else if (_terminalBlockExplicitSpecified && header.Number == ConfiguredTerminalBlockNumber)
+            {
+                isTerminal = true;
+                isPostMerge = false;
+            }
             else if (_specProvider.TerminalTotalDifficulty == null) // TTD = null, so everything is preMerge
             {
                 isTerminal = false;
@@ -233,6 +249,29 @@ namespace Nethermind.Merge.Plugin
 
         public bool IsPostMerge(BlockHeader header) =>
             GetBlockConsensusInfo(header).IsPostMerge;
+
+        public void OnInvalidTerminalBlock(BlockHeader header, string? message)
+        {
+            _invalidTerminalBlockError = message;
+        }
+
+        public bool HasInvalidTerminalBlock(out string? message)
+        {
+            if (TerminalTotalDifficulty is null)
+            {
+                message = "TerminalTotalDifficulty not set";
+                return true;
+            }
+
+            if (_invalidTerminalBlockError != null)
+            {
+                message = _invalidTerminalBlockError;
+                return true;
+            }
+
+            message = null;
+            return false;
+        }
 
         public bool HasEverReachedTerminalBlock() => _hasEverReachedTerminalDifficulty;
 
@@ -290,6 +329,25 @@ namespace Nethermind.Merge.Plugin
                     byte[]? hashFromDb = _metadataDb.Get(key);
                     RlpStream stream = new(hashFromDb!);
                     return stream.DecodeKeccak();
+                }
+            }
+            catch (RlpException)
+            {
+                if (_logger.IsWarn) _logger.Warn($"Cannot decode hash with metadata key: {key}");
+            }
+
+            return null;
+        }
+        
+        private bool? LoadBooleanFromDb(int key)
+        {
+            try
+            {
+                if (_metadataDb.KeyExists(key))
+                {
+                    byte[]? hashFromDb = _metadataDb.Get(key);
+                    RlpStream stream = new(hashFromDb!);
+                    return stream.DecodeBool();
                 }
             }
             catch (RlpException)

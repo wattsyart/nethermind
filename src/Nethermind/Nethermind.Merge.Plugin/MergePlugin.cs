@@ -129,6 +129,7 @@ namespace Nethermind.Merge.Plugin
                         _api.BlockTree,
                         _api.SpecProvider,
                         _api.SealValidator,
+                        _mergeConfig,
                         _api.LogManager);
                 _api.HeaderValidator = new InvalidHeaderInterceptor(
                     headerValidator,
@@ -276,6 +277,7 @@ namespace Nethermind.Merge.Plugin
                         _api.BlockTree,
                         _api.SpecProvider,
                         _api.SealValidator,
+                        _mergeConfig,
                         _api.LogManager);
                 _api.HeaderValidator = new InvalidHeaderInterceptor(
                     headerValidator,
