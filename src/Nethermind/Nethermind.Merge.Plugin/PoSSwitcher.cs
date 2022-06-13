@@ -155,11 +155,35 @@ namespace Nethermind.Merge.Plugin
             {
                 TerminalBlockReached?.Invoke(this, EventArgs.Empty);
                 _hasEverReachedTerminalDifficulty = true;
-                if (_logger.IsInfo) _logger.Info($"Reached terminal block {header}");
+                PrintPoSBanner(header);
             }
             else if (_logger.IsInfo) _logger.Info($"Updated terminal block {header}");
 
             return true;
+        }
+
+        private void PrintPoSBanner(BlockHeader header)
+        {
+            if (!_logger.IsInfo) return;
+
+            _logger.Info("┌──────────────────────────────────────────────────────────────────────────────────────────┐");
+            _logger.Info("│ You have now reached...                                                                  │");
+            _logger.Info("│                   ,,,         ,,,                                                        │");
+            _logger.Info("│                 ;\"   ^;     ;'   \",                                                      │");
+            _logger.Info("│                 ;    s$$$$$$$s     ;   ████████╗             ████████╗                   │");
+            _logger.Info("│                 ,  ss$$$$$$$$$$s  ,'   ██╔════██╗            ██╔═════╝                   │");
+            _logger.Info("│                 ;s$$$$$$$$$$$$$$$      ██║    ██║            ██║                         │");
+            _logger.Info("│                 $$$$$$$$$$$$$$$$$$     ██║    ██║  ███████╗  ██║                         │");
+            _logger.Info("│                $$$$P\"\"Y$$$Y\"\"W$$$$$    ████████╔╝ ██╔════██╗ ████████╗                   │");
+            _logger.Info("│                $$$$  p\"$$$\"q  $$$$$    ██╔═════╝  ██║    ██║ ╚═════██║                   │");
+            _logger.Info("│                $$$$  .$$$$$.  $$$$     ██║        ██║    ██║       ██║                   │");
+            _logger.Info("│                 $$DcaU$$$$$$$$$$       ██║        ██║    ██║       ██║                   │");
+            _logger.Info("│                   \"Y$$$\"*\"$$$Y\"        ██║        ╚███████╔╝ ████████║                   │");
+            _logger.Info("│                       \"$b.$$\"          ╚═╝         ╚══════╝  ╚═══════╝                   │");
+            _logger.Info("│                                                                                          │");
+            _logger.Info($"│ Terminal block number: {header.Number,-32}                                  │");
+            _logger.Info($"│ Terminal block hash: {header.Hash,-64}  │");
+            _logger.Info("└──────────────────────────────────────────────────────────────────────────────────────────┘");
         }
 
         public void ForkchoiceUpdated(BlockHeader newHeadHash, Keccak finalizedHash)
