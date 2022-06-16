@@ -101,7 +101,8 @@ namespace Nethermind.Blockchain.Test
                 storageProvider,
                 NullReceiptStorage.Instance,
                 new WitnessCollector(memDbProvider.StateDb, LimboLogs.Instance),
-                LimboLogs.Instance);
+                LimboLogs.Instance,
+                memDbProvider.MetadataDb);
             _blockchainProcessor = new BlockchainProcessor(
                 _blockTree,
                 blockProcessor,

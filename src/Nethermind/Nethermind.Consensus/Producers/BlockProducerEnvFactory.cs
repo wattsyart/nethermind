@@ -161,6 +161,7 @@ namespace Nethermind.Consensus.Producers
                 readOnlyTxProcessingEnv.StorageProvider,
                 receiptStorage,
                 NullWitnessCollector.Instance,
-                logManager);
+                logManager,
+                _dbProvider.MetadataDb);
     }
 }

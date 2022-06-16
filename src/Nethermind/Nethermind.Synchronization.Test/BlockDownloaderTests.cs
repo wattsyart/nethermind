@@ -872,13 +872,15 @@ namespace Nethermind.Synchronization.Test
                 Feed = Substitute.For<ISyncFeed<BlocksRequest>>();
 
                 MemDb stateDb = new();
-                
+                MemDb metadataDb = new();
+
                 SyncConfig syncConfig = new();
                 ProgressTracker progressTracker = new(BlockTree, stateDb, LimboLogs.Instance);
                 SyncProgressResolver syncProgressResolver = new(
                     BlockTree,
                     NullReceiptStorage.Instance,
                     stateDb,
+                    metadataDb,
                     new TrieStore(stateDb, LimboLogs.Instance),
                     progressTracker,
                     syncConfig,

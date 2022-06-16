@@ -310,7 +310,8 @@ namespace Nethermind.Core.Test.Blockchain
                 Storage,
                 ReceiptStorage,
                 NullWitnessCollector.Instance,
-                LogManager);
+                LogManager,
+                DbProvider.MetadataDb);
 
         public async Task WaitForNewHead()
         {

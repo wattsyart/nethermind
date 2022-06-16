@@ -220,7 +220,8 @@ namespace Nethermind.Mev.Test
                     Storage,
                     ReceiptStorage,
                     NullWitnessCollector.Instance,
-                    LogManager);
+                    LogManager,
+                    DbProvider.MetadataDb);
 
                 _tracerFactory = new TracerFactory(
                     DbProvider,

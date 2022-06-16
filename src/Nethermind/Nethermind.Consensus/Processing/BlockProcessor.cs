@@ -25,6 +25,7 @@ using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Specs;
 using Nethermind.Crypto;
+using Nethermind.Db;
 using Nethermind.Evm.Tracing;
 using Nethermind.Int256;
 using Nethermind.Logging;
@@ -40,6 +41,7 @@ namespace Nethermind.Consensus.Processing
         protected readonly IStateProvider _stateProvider;
         private readonly IReceiptStorage _receiptStorage;
         private readonly IWitnessCollector _witnessCollector;
+        private readonly IDb _metadataDb;
         private readonly IBlockValidator _blockValidator;
         private readonly IStorageProvider _storageProvider;
         private readonly IRewardCalculator _rewardCalculator;
@@ -62,7 +64,8 @@ namespace Nethermind.Consensus.Processing
             IStorageProvider? storageProvider,
             IReceiptStorage? receiptStorage,
             IWitnessCollector? witnessCollector,
-            ILogManager? logManager)
+            ILogManager? logManager,
+            IDb? metadataDb)
         {
             _logger = logManager?.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
             _specProvider = specProvider ?? throw new ArgumentNullException(nameof(specProvider));
@@ -71,6 +74,7 @@ namespace Nethermind.Consensus.Processing
             _storageProvider = storageProvider ?? throw new ArgumentNullException(nameof(storageProvider));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _witnessCollector = witnessCollector ?? throw new ArgumentNullException(nameof(witnessCollector));
+            _metadataDb = metadataDb ?? throw new ArgumentNullException(nameof(witnessCollector));
             _rewardCalculator = rewardCalculator ?? throw new ArgumentNullException(nameof(rewardCalculator));
             _blockTransactionsExecutor = blockTransactionsExecutor ?? throw new ArgumentNullException(nameof(blockTransactionsExecutor));
 
@@ -134,6 +138,7 @@ namespace Nethermind.Consensus.Processing
                         previousBranchStateRoot = CreateCheckpoint();
                         Keccak? newStateRoot = suggestedBlocks[i].StateRoot;
                         InitBranch(newStateRoot, false);
+                        _metadataDb.Set(MetadataDbKeys.SyncedStateBlockNumber, BitConverter.GetBytes(processedBlock.Number));
                     }
                 }
 
@@ -171,7 +176,7 @@ namespace Nethermind.Consensus.Processing
                    by blocks that are being reorganized out.*/
 
                 if (incrementReorgMetric)
-                    Metrics.Reorganizations++;
+                    Blockchain.Metrics.Reorganizations++;
                 _storageProvider.Reset();
                 _stateProvider.Reset();
                 _stateProvider.StateRoot = branchStateRoot;

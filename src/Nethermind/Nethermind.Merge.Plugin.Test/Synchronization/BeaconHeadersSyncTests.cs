@@ -95,6 +95,7 @@ public class BeaconHeadersSyncTests
                 BlockTree,
                 NullReceiptStorage.Instance,
                 stateDb,
+                metadataDb!,
                 new TrieStore(stateDb, LimboLogs.Instance),
                 progressTracker,
                 _syncConfig,

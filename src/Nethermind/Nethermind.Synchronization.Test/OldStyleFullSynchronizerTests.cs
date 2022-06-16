@@ -59,6 +59,7 @@ namespace Nethermind.Synchronization.Test
             IDbProvider dbProvider = await TestMemDbProvider.InitAsync();
             _stateDb = dbProvider.StateDb;
             _codeDb = dbProvider.CodeDb;
+            _metadataDb = dbProvider.MetadataDb;
             _receiptStorage = Substitute.For<IReceiptStorage>();
             SyncConfig quickConfig = new();
             quickConfig.FastSync = false;
@@ -74,6 +75,7 @@ namespace Nethermind.Synchronization.Test
                 _blockTree,
                 _receiptStorage,
                 _stateDb,
+                _metadataDb,
                 new TrieStore(_stateDb, LimboLogs.Instance),  
                 progressTracker,
                 syncConfig,
@@ -130,6 +132,7 @@ namespace Nethermind.Synchronization.Test
 
         private IDb _stateDb;
         private IDb _codeDb;
+        private IDb _metadataDb;
         private IBlockTree _blockTree;
         private IBlockTree _remoteBlockTree;
         private IReceiptStorage _receiptStorage;

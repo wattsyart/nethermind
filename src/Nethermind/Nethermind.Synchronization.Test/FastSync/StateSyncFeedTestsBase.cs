@@ -96,7 +96,7 @@ namespace Nethermind.Synchronization.Test.FastSync
             SyncConfig syncConfig = new SyncConfig();
             syncConfig.FastSync = true;
             ctx.SyncModeSelector = StaticSelector.StateNodesWithFastBlocks;
-            ctx.TreeFeed = new(SyncMode.StateNodes, dbContext.LocalCodeDb, dbContext.LocalStateDb, blockTree, _logManager);
+            ctx.TreeFeed = new(SyncMode.StateNodes, dbContext.LocalCodeDb, dbContext.LocalStateDb, dbContext.MetadataDb, blockTree, _logManager);
             ctx.Feed = new StateSyncFeed(ctx.SyncModeSelector, ctx.TreeFeed, _logManager);
             ctx.StateSyncDispatcher =
                 new StateSyncDispatcher(ctx.Feed, ctx.Pool, new StateSyncAllocationStrategyFactory(), _logManager);
@@ -142,6 +142,7 @@ namespace Nethermind.Synchronization.Test.FastSync
                 _logger = logger;
                 RemoteDb = new MemDb();
                 LocalDb = new MemDb();
+                MetadataDb = new MemDb();
                 RemoteStateDb = RemoteDb;
                 LocalStateDb = LocalDb;
                 LocalCodeDb = new MemDb();
@@ -156,6 +157,7 @@ namespace Nethermind.Synchronization.Test.FastSync
             public IDb LocalCodeDb { get; }
             public MemDb RemoteDb { get; }
             public MemDb LocalDb { get; }
+            public MemDb MetadataDb { get; }
             public ITrieStore RemoteTrieStore { get; }
             public IDb RemoteStateDb { get; }
             public IDb LocalStateDb { get; }

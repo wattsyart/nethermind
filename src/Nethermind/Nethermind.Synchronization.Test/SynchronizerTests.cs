@@ -309,6 +309,7 @@ namespace Nethermind.Synchronization.Test
                 ISyncConfig syncConfig = GetSyncConfig();
                 IDbProvider dbProvider = TestMemDbProvider.Init();
                 IDb stateDb = new MemDb();
+                IDb metadataDb = new MemDb();
                 IDb codeDb = dbProvider.CodeDb;
                 MemDb blockInfoDb = new();
                 BlockTree = new BlockTree(new MemDb(), new MemDb(), blockInfoDb,
@@ -332,6 +333,7 @@ namespace Nethermind.Synchronization.Test
                     BlockTree,
                     NullReceiptStorage.Instance,
                     stateDb,
+                    metadataDb,
                     new TrieStore(stateDb, LimboLogs.Instance),
                     progressTracker,
                     syncConfig,

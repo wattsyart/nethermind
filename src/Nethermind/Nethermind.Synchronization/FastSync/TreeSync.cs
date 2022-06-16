@@ -50,6 +50,7 @@ namespace Nethermind.Synchronization.FastSync
         private readonly ILogger _logger;
         private readonly IDb _codeDb;
         private readonly IDb _stateDb;
+        private readonly IDb _metadataDb;
 
         private readonly IBlockTree _blockTree;
 
@@ -63,11 +64,12 @@ namespace Nethermind.Synchronization.FastSync
         private long _blockNumber;
         private SyncMode _syncMode;
 
-        public TreeSync(SyncMode syncMode, IDb codeDb,IDb stateDb, IBlockTree blockTree, ILogManager logManager)
+        public TreeSync(SyncMode syncMode, IDb codeDb, IDb stateDb, IDb metadataDb, IBlockTree blockTree, ILogManager logManager)
         {
             _syncMode = syncMode;
             _codeDb = codeDb ?? throw new ArgumentNullException(nameof(codeDb));
             _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
+            _metadataDb = metadataDb ?? throw new ArgumentNullException(nameof(metadataDb));
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
 
             _logger = logManager.GetClassLogger() ?? throw new ArgumentNullException(nameof(logManager));
@@ -597,8 +599,8 @@ namespace Nethermind.Synchronization.FastSync
             if (syncItem.IsRoot)
             {
                 if (_logger.IsInfo) _logger.Info($"Saving root {syncItem.Hash} of {_branchProgress.CurrentSyncBlock}");
-
                 Interlocked.Exchange(ref _rootSaved, 1);
+                _metadataDb.Set(MetadataDbKeys.SyncedStateBlockNumber, BitConverter.GetBytes(_blockNumber));
             }
 
             _branchProgress.ReportSynced(syncItem.Level, syncItem.ParentBranchChildIndex, syncItem.BranchChildIndex, syncItem.NodeDataType, NodeProgressState.Saved);

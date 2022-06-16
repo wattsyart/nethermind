@@ -23,7 +23,6 @@ using Nethermind.Core.Crypto;
 using Nethermind.Db;
 using Nethermind.Int256;
 using Nethermind.Logging;
-using Nethermind.State.Snap;
 using Nethermind.Synchronization.SnapSync;
 using Nethermind.Trie;
 using Nethermind.Trie.Pruning;
@@ -40,6 +39,7 @@ namespace Nethermind.Synchronization.ParallelSync
         private readonly IBlockTree _blockTree;
         private readonly IReceiptStorage _receiptStorage;
         private readonly IDb _stateDb;
+        private readonly IDb _metadataDb;
         private readonly ITrieNodeResolver _trieNodeResolver;
         private readonly ProgressTracker _progressTracker;
         private readonly ISyncConfig _syncConfig;
@@ -53,6 +53,7 @@ namespace Nethermind.Synchronization.ParallelSync
         public SyncProgressResolver(IBlockTree blockTree,
             IReceiptStorage receiptStorage,
             IDb stateDb,
+            IDb metadataDb,
             ITrieNodeResolver trieNodeResolver,
             ProgressTracker progressTracker,
             ISyncConfig syncConfig,
@@ -62,6 +63,7 @@ namespace Nethermind.Synchronization.ParallelSync
             _blockTree = blockTree ?? throw new ArgumentNullException(nameof(blockTree));
             _receiptStorage = receiptStorage ?? throw new ArgumentNullException(nameof(receiptStorage));
             _stateDb = stateDb ?? throw new ArgumentNullException(nameof(stateDb));
+            _metadataDb = metadataDb ?? throw new ArgumentNullException(nameof(metadataDb));
             _trieNodeResolver = trieNodeResolver ?? throw new ArgumentNullException(nameof(trieNodeResolver));
             _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
             _syncConfig = syncConfig ?? throw new ArgumentNullException(nameof(syncConfig));
@@ -90,6 +92,12 @@ namespace Nethermind.Synchronization.ParallelSync
         
         public long FindBestFullState()
         {
+            byte[] a = _metadataDb.Get(MetadataDbKeys.SyncedStateBlockNumber);
+            if (a != null)
+            {
+                return BitConverter.ToInt64(a);
+            }
+
             // so the full state can be in a few places but there are some best guesses
             // if we are state syncing then the full state may be one of the recent blocks (maybe one of the last 128 blocks)
             // if we full syncing then the state should be at head
@@ -117,6 +125,7 @@ namespace Nethermind.Synchronization.ParallelSync
                 }
             }
 
+            _metadataDb.Set(MetadataDbKeys.SyncedStateBlockNumber, BitConverter.GetBytes(bestFullState));
             return bestFullState;
         }
 

@@ -103,6 +103,7 @@ namespace Nethermind.Clique.Test
                 
                 MemDb stateDb = new();
                 MemDb codeDb = new();
+                MemDb metadataDb = new();
 
                 ISpecProvider specProvider = RinkebySpecProvider.Instance;
 
@@ -145,7 +146,8 @@ namespace Nethermind.Clique.Test
                     storageProvider,
                     NullReceiptStorage.Instance,
                     NullWitnessCollector.Instance,
-                    nodeLogManager);
+                    nodeLogManager,
+                    metadataDb);
 
                 BlockchainProcessor processor = new(blockTree, blockProcessor, new AuthorRecoveryStep(snapshotManager), stateReader, nodeLogManager, BlockchainProcessor.Options.NoReceipts);
                 processor.Start();
@@ -166,7 +168,8 @@ namespace Nethermind.Clique.Test
                     minerStorageProvider,
                     NullReceiptStorage.Instance,
                     NullWitnessCollector.Instance,
-                    nodeLogManager);
+                    nodeLogManager,
+                    metadataDb);
 
                 BlockchainProcessor minerProcessor = new(blockTree, minerBlockProcessor, new AuthorRecoveryStep(snapshotManager), stateReader, nodeLogManager, BlockchainProcessor.Options.NoReceipts);
 

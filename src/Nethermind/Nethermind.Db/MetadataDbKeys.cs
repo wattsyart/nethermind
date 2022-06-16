@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -27,5 +27,6 @@ namespace Nethermind.Db
         public const int BeaconSyncPivotNumber = 6;
         public const int LowestInsertedBeaconHeaderHash = 7;
         public const int FirstPoSHash = 8;
+        public const long SyncedStateBlockNumber = 9;
     }
 }

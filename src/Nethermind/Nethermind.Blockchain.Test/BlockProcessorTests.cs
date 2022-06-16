@@ -52,6 +52,7 @@ namespace Nethermind.Blockchain.Test
         {
             IDb stateDb = new MemDb();
             IDb codeDb = new MemDb();
+            IDb metadataDb = new MemDb();
             TrieStore trieStore = new(stateDb, LimboLogs.Instance);
             IStateProvider stateProvider = new StateProvider(trieStore, codeDb, LimboLogs.Instance);
             ITransactionProcessor transactionProcessor = Substitute.For<ITransactionProcessor>();
@@ -64,7 +65,8 @@ namespace Nethermind.Blockchain.Test
                 new StorageProvider(trieStore, stateProvider, LimboLogs.Instance),
                 NullReceiptStorage.Instance,
                 NullWitnessCollector.Instance,
-                LimboLogs.Instance);
+                LimboLogs.Instance,
+                metadataDb);
 
             BlockHeader header = Build.A.BlockHeader.WithAuthor(TestItem.AddressD).TestObject;
             Block block = Build.A.Block.WithHeader(header).TestObject;
@@ -82,6 +84,7 @@ namespace Nethermind.Blockchain.Test
         {
             IDb stateDb = new MemDb();
             IDb codeDb = new MemDb();
+            IDb metadataDb = new MemDb();
             var trieStore = new TrieStore(stateDb, LimboLogs.Instance);
             
             IStateProvider stateProvider = new StateProvider(trieStore, codeDb, LimboLogs.Instance);
@@ -96,7 +99,8 @@ namespace Nethermind.Blockchain.Test
                 new StorageProvider(trieStore, stateProvider, LimboLogs.Instance),
                 NullReceiptStorage.Instance,
                 witnessCollector,
-                LimboLogs.Instance);
+                LimboLogs.Instance,
+                metadataDb);
 
             BlockHeader header = Build.A.BlockHeader.WithAuthor(TestItem.AddressD).TestObject;
             Block block = Build.A.Block.WithHeader(header).TestObject;
@@ -114,6 +118,7 @@ namespace Nethermind.Blockchain.Test
         {
             IDb stateDb = new MemDb();
             IDb codeDb = new MemDb();
+            IDb metadataDb = new MemDb();
             TrieStore trieStore = new(stateDb, LimboLogs.Instance);
             IStateProvider stateProvider = new StateProvider(trieStore, codeDb, LimboLogs.Instance);
             ITransactionProcessor transactionProcessor = Substitute.For<ITransactionProcessor>();
@@ -126,7 +131,8 @@ namespace Nethermind.Blockchain.Test
                 new StorageProvider(trieStore, stateProvider, LimboLogs.Instance),
                 NullReceiptStorage.Instance,
                 NullWitnessCollector.Instance,
-                LimboLogs.Instance);
+                LimboLogs.Instance,
+                metadataDb);
 
             BlockHeader header = Build.A.BlockHeader.WithNumber(1).WithAuthor(TestItem.AddressD).TestObject;
             Block block = Build.A.Block.WithTransactions(1, MuirGlacier.Instance).WithHeader(header).TestObject;

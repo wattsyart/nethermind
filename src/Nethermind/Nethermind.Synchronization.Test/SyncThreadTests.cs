@@ -267,6 +267,7 @@ namespace Nethermind.Synchronization.Test
             IDb blockInfoDb = dbProvider.BlockInfosDb;
             IDb codeDb = dbProvider.CodeDb;
             IDb stateDb = dbProvider.StateDb;
+            IDb metadataDb = dbProvider.MetadataDb;
 
             TrieStore trieStore = new(stateDb, LimboLogs.Instance);
             StateReader stateReader = new(trieStore, codeDb, logManager);
@@ -314,7 +315,8 @@ namespace Nethermind.Synchronization.Test
                 storageProvider,
                 receiptStorage,
                 NullWitnessCollector.Instance,
-                logManager);
+                logManager,
+                metadataDb);
 
             RecoverSignatures step = new(ecdsa, txPool, specProvider, logManager);
             BlockchainProcessor processor = new(tree, blockProcessor, step, stateReader, logManager,
@@ -338,7 +340,8 @@ namespace Nethermind.Synchronization.Test
                 devStorage,
                 receiptStorage,
                 NullWitnessCollector.Instance,
-                logManager);
+                logManager,
+                metadataDb);
 
             BlockchainProcessor devChainProcessor = new(tree, devBlockProcessor, step, stateReader, logManager,
                 BlockchainProcessor.Options.NoReceipts);
@@ -359,7 +362,7 @@ namespace Nethermind.Synchronization.Test
             SnapProvider snapProvider = new(progressTracker, dbProvider, LimboLogs.Instance);
 
             SyncProgressResolver resolver = new(
-                tree, receiptStorage, stateDb, NullTrieNodeResolver.Instance, progressTracker, syncConfig, logManager);
+                tree, receiptStorage, stateDb, dbProvider.MetadataDb, NullTrieNodeResolver.Instance, progressTracker, syncConfig, logManager);
             TotalDifficultyBasedBetterPeerStrategy bestPeerStrategy = new(resolver, LimboLogs.Instance);
             MultiSyncModeSelector selector = new(resolver, syncPeerPool, syncConfig, No.BeaconSync, bestPeerStrategy, logManager);
             Pivot pivot = new(syncConfig);

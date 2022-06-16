@@ -122,6 +122,7 @@ namespace Nethermind.Init.Steps
                 _api.BlockTree!,
                 _api.ReceiptStorage!,
                 _api.DbProvider.StateDb,
+                _api.DbProvider.MetadataDb,
                 _api.ReadOnlyTrieStore!,
                 progressTracker,
                 _syncConfig,
