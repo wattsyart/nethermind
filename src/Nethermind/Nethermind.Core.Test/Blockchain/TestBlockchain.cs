@@ -81,6 +81,7 @@ namespace Nethermind.Core.Test.Blockchain
         public IStateProvider State { get; set; }
         public IReadOnlyStateProvider ReadOnlyState { get; private set; }
         public IDb StateDb => DbProvider.StateDb;
+        public IDb MetadataDb => DbProvider.MetadataDb;
         public TrieStore TrieStore { get; set; }
         public IBlockProducer BlockProducer { get; private set; }
         public IDbProvider DbProvider { get; set; }
@@ -311,7 +312,7 @@ namespace Nethermind.Core.Test.Blockchain
                 ReceiptStorage,
                 NullWitnessCollector.Instance,
                 LogManager,
-                DbProvider.MetadataDb);
+                MetadataDb);
 
         public async Task WaitForNewHead()
         {
