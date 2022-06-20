@@ -16,6 +16,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace Nethermind.Core.Resettables
@@ -26,11 +27,11 @@ namespace Nethermind.Core.Resettables
         private readonly int _startCapacity;
         private readonly int _resetRatio;
 
-        private HashSet<T> _wrapped;
+        private ConcurrentHashSet<T> _wrapped;
 
         public ResettableHashSet(int startCapacity = Resettable.StartCapacity, int resetRatio = Resettable.ResetRatio)
         {
-            _wrapped = new HashSet<T>(startCapacity);
+            _wrapped = new ConcurrentHashSet<T>(startCapacity);
             _startCapacity = startCapacity;
             _resetRatio = resetRatio;
             _currentCapacity = _startCapacity;
@@ -84,7 +85,7 @@ namespace Nethermind.Core.Resettables
             if (_wrapped.Count < _currentCapacity / _resetRatio && _currentCapacity != _startCapacity)
             {
                 _currentCapacity = Math.Max(_startCapacity, _currentCapacity / _resetRatio);
-                _wrapped = new HashSet<T>(_currentCapacity);
+                _wrapped = new ConcurrentHashSet<T>(_currentCapacity);
             }
             else
             {
