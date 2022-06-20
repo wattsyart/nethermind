@@ -55,6 +55,8 @@ namespace Nethermind.Consensus.Processing
         private readonly BlockingCollection<BlockRef> _blockQueue = new(new ConcurrentQueue<BlockRef>(),
             MaxProcessingQueueSize);
 
+        private int _queueCount;
+
         private readonly ProcessingStats _stats;
 
         private CancellationTokenSource? _loopCancellationSource;
@@ -64,7 +66,7 @@ namespace Nethermind.Consensus.Processing
 
         private int _currentRecoveryQueueSize;
         private readonly CompositeBlockTracer _compositeBlockTracer = new();
-        private Stopwatch _stopwatch = new();
+        private readonly Stopwatch _stopwatch = new();
         
         public event EventHandler<IBlockchainProcessor.InvalidBlockEventArgs> InvalidBlock;
 
@@ -119,24 +121,27 @@ namespace Nethermind.Consensus.Processing
 
         public void Enqueue(Block block, ProcessingOptions processingOptions)
         {
-            if (_logger.IsTrace)
-                _logger.Trace($"Enqueuing a new block {block.ToString(Block.Format.Short)} for processing.");
+            if (_logger.IsTrace) _logger.Trace($"Enqueuing a new block {block.ToString(Block.Format.Short)} for processing.");
 
             int currentRecoveryQueueSize = Interlocked.Add(ref _currentRecoveryQueueSize, block.Transactions.Length);
+            Keccak? blockHash = block.Hash!;
             BlockRef blockRef = currentRecoveryQueueSize >= SoftMaxRecoveryQueueSizeInTx
-                ? new BlockRef(block.Hash!, processingOptions)
+                ? new BlockRef(blockHash, processingOptions)
                 : new BlockRef(block, processingOptions);
+            
             if (!_recoveryQueue.IsAddingCompleted)
             {
+                Interlocked.Increment(ref _queueCount);
                 try
                 {
                     _recoveryQueue.Add(blockRef);
-                    if (_logger.IsTrace)
-                        _logger.Trace($"A new block {block.ToString(Block.Format.Short)} enqueued for processing.");
+                    if (_logger.IsTrace) _logger.Trace($"A new block {block.ToString(Block.Format.Short)} enqueued for processing.");
                 }
-                catch (InvalidOperationException)
+                catch (Exception e)
                 {
-                    if (!_recoveryQueue.IsAddingCompleted)
+                    Interlocked.Decrement(ref _queueCount);
+                    BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockHash, ProcessingResult.QueueException));
+                    if (e is not InvalidOperationException || !_recoveryQueue.IsAddingCompleted)
                     {
                         throw;
                     }
@@ -155,8 +160,7 @@ namespace Nethermind.Consensus.Processing
             {
                 if (t.IsFaulted)
                 {
-                    if (_logger.IsError)
-                        _logger.Error("Sender address recovery encountered an exception.", t.Exception);
+                    if (_logger.IsError) _logger.Error("Sender address recovery encountered an exception.", t.Exception);
                 }
                 else if (t.IsCanceled)
                 {
@@ -176,8 +180,7 @@ namespace Nethermind.Consensus.Processing
             {
                 if (t.IsFaulted)
                 {
-                    if (_logger.IsError)
-                        _logger.Error($"{nameof(BlockchainProcessor)} encountered an exception.", t.Exception);
+                    if (_logger.IsError) _logger.Error($"{nameof(BlockchainProcessor)} encountered an exception.", t.Exception);
                 }
                 else if (t.IsCanceled)
                 {
@@ -206,41 +209,53 @@ namespace Nethermind.Consensus.Processing
             }
 
             await Task.WhenAll((_recoveryTask ?? Task.CompletedTask), (_processorTask ?? Task.CompletedTask));
-            if (_logger.IsInfo)
-                _logger.Info("Blockchain Processor shutdown complete.. please wait for all components to close");
+            if (_logger.IsInfo) _logger.Info("Blockchain Processor shutdown complete.. please wait for all components to close");
         }
 
         private void RunRecoveryLoop()
         {
-            if (_logger.IsDebug)
-                _logger.Debug($"Starting recovery loop - {_blockQueue.Count} blocks waiting in the queue.");
+            if (_logger.IsDebug) _logger.Debug($"Starting recovery loop - {_blockQueue.Count} blocks waiting in the queue.");
             _lastProcessedBlock = DateTime.UtcNow;
             foreach (BlockRef blockRef in _recoveryQueue.GetConsumingEnumerable(_loopCancellationSource.Token))
             {
-                if (blockRef.Resolve(_blockTree))
+                try
                 {
-                    Interlocked.Add(ref _currentRecoveryQueueSize, -blockRef.Block!.Transactions.Length);
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            $"Recovering addresses for block {blockRef.BlockHash?.ToString() ?? blockRef.Block.ToString(Block.Format.Short)}.");
-                    _recoveryStep.RecoverData(blockRef.Block);
+                    if (blockRef.Resolve(_blockTree))
+                    {
+                        Interlocked.Add(ref _currentRecoveryQueueSize, -blockRef.Block!.Transactions.Length);
+                        if (_logger.IsTrace) _logger.Trace($"Recovering addresses for block {blockRef.BlockHash}.");
+                        _recoveryStep.RecoverData(blockRef.Block);
 
-                    try
-                    {
-                        _blockQueue.Add(blockRef);
+                        try
+                        {
+                            _blockQueue.Add(blockRef);
+                        }
+                        catch (Exception e)
+                        {
+                            Interlocked.Decrement(ref _queueCount);
+                            BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.QueueException));
+                            if (e is InvalidOperationException)
+                            {
+                                if (_logger.IsDebug) _logger.Debug($"Recovery loop stopping.");
+                                return;
+                            }
+
+                            throw;
+                        }
                     }
-                    catch (InvalidOperationException)
+                    else
                     {
-                        if (_logger.IsDebug) _logger.Debug($"Recovery loop stopping.");
-                        return;
+                        Interlocked.Decrement(ref _queueCount);
+                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.MissingBlock));
+                        if (_logger.IsTrace) _logger.Trace("Block was removed from the DB and cannot be recovered (it belonged to an invalid branch). Skipping.");
+                        FireProcessingQueueEmpty();
                     }
                 }
-                else
+                catch
                 {
-                    if (_logger.IsTrace)
-                        _logger.Trace(
-                            "Block was removed from the DB and cannot be recovered (it belonged to an invalid branch). Skipping.");
-                    FireProcessingQueueEmpty();
+                    Interlocked.Decrement(ref _queueCount);
+                    BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception));
+                    throw;
                 }
             }
         }
@@ -253,26 +268,40 @@ namespace Nethermind.Consensus.Processing
 
             foreach (BlockRef blockRef in _blockQueue.GetConsumingEnumerable(_loopCancellationSource.Token))
             {
-                if (blockRef.IsInDb || blockRef.Block == null)
+                try
                 {
-                    throw new InvalidOperationException("Processing loop expects only resolved blocks");
+                    if (blockRef.IsInDb || blockRef.Block == null)
+                    {
+                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.MissingBlock));
+                        throw new InvalidOperationException("Processing loop expects only resolved blocks");
+                    }
+
+                    Block block = blockRef.Block;
+
+                    if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
+                    _stats.Start();
+
+                    Block processedBlock = Process(block, blockRef.ProcessingOptions, _compositeBlockTracer.GetTracer());
+
+                    if (processedBlock == null)
+                    {
+                        if (_logger.IsTrace) _logger.Trace($"Failed / skipped processing {block.ToString(Block.Format.Full)}");
+                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.ProcessingError));
+                    }
+                    else
+                    {
+                        if (_logger.IsTrace) _logger.Trace($"Processed block {block.ToString(Block.Format.Full)}");
+                        _stats.UpdateStats(block, _recoveryQueue.Count, _blockQueue.Count);
+                        BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Success));
+                    }
                 }
-
-                Block block = blockRef.Block;
-
-                if (_logger.IsTrace) _logger.Trace($"Processing block {block.ToString(Block.Format.Short)}).");
-                _stats.Start();
-
-                Block processedBlock = Process(block, blockRef.ProcessingOptions, _compositeBlockTracer.GetTracer());
-                if (processedBlock == null)
+                catch
                 {
-                    if (_logger.IsTrace)
-                        _logger.Trace($"Failed / skipped processing {block.ToString(Block.Format.Full)}");
+                    BlockRemoved?.Invoke(this, new BlockHashEventArgs(blockRef.BlockHash, ProcessingResult.Exception));
                 }
-                else
+                finally
                 {
-                    if (_logger.IsTrace) _logger.Trace($"Processed block {block.ToString(Block.Format.Full)}");
-                    _stats.UpdateStats(block, _recoveryQueue.Count, _blockQueue.Count);
+                    Interlocked.Decrement(ref _queueCount);
                 }
 
                 if (_logger.IsTrace) _logger.Trace($"Now {_blockQueue.Count} blocks waiting in the queue.");
@@ -291,8 +320,9 @@ namespace Nethermind.Consensus.Processing
         }
 
         public event EventHandler? ProcessingQueueEmpty;
+        public event EventHandler<BlockHashEventArgs>? BlockRemoved;
 
-        int IBlockProcessingQueue.Count => _blockQueue.Count + _recoveryQueue.Count;
+        int IBlockProcessingQueue.Count => _queueCount;
 
         public Block? Process(Block suggestedBlock, ProcessingOptions options, IBlockTracer tracer)
         {
