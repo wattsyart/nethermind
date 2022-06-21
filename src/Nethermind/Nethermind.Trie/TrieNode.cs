@@ -452,41 +452,45 @@ namespace Nethermind.Trie
 
         public TrieNode? GetChild(ITrieNodeResolver tree, int childIndex)
         {
-            /* extensions store value before the child while branches store children before the value
-             * so just to treat them in the same way we update index on extensions
-             */
-            childIndex = IsExtension ? childIndex + 1 : childIndex;
-            object childOrRef = ResolveChild(tree, childIndex);
 
-            TrieNode? child;
-            if (ReferenceEquals(childOrRef, _nullNode) || ReferenceEquals(childOrRef, null))
+            //lock (this)
             {
-                child = null;
-            }
-            else if (childOrRef is TrieNode childNode)
-            {
-                child = childNode;
-            }
-            else if (childOrRef is Keccak reference)
-            {
-                child = tree.FindCachedOrUnknown(reference);
-            }
-            else
-            {
-                // we expect this to happen as a Trie traversal error (please see the stack trace above)
-                // we need to investigate this case when it happens again
-                bool isKeccakCalculated = Keccak is not null && FullRlp is not null;
-                bool isKeccakCorrect = isKeccakCalculated && Keccak == Keccak.Compute(FullRlp);
-                throw new TrieException($"Unexpected type found at position {childIndex} of {this} with {nameof(_data)} of length {_data?.Length}. Expected a {nameof(TrieNode)} or {nameof(Keccak)} but found {childOrRef?.GetType()} with a value of {childOrRef}. Keccak calculated? : {isKeccakCalculated}; Keccak correct? : {isKeccakCorrect}");
-            }
+                /* extensions store value before the child while branches store children before the value
+                 * so just to treat them in the same way we update index on extensions
+                 */
+                childIndex = IsExtension ? childIndex + 1 : childIndex;
+                object childOrRef = ResolveChild(tree, childIndex);
 
-            // pruning trick so we never store long persisted paths
-            if (child?.IsPersisted == true)
-            {
-                UnresolveChild(childIndex);
-            }
+                TrieNode? child;
+                if (ReferenceEquals(childOrRef, _nullNode) || ReferenceEquals(childOrRef, null))
+                {
+                    child = null;
+                }
+                else if (childOrRef is TrieNode childNode)
+                {
+                    child = childNode;
+                }
+                else if (childOrRef is Keccak reference)
+                {
+                    child = tree.FindCachedOrUnknown(reference);
+                }
+                else
+                {
+                    // we expect this to happen as a Trie traversal error (please see the stack trace above)
+                    // we need to investigate this case when it happens again
+                    bool isKeccakCalculated = Keccak is not null && FullRlp is not null;
+                    bool isKeccakCorrect = isKeccakCalculated && Keccak == Keccak.Compute(FullRlp);
+                    throw new TrieException($"Unexpected type found at position {childIndex} of {this} with {nameof(_data)} of length {_data?.Length}. Expected a {nameof(TrieNode)} or {nameof(Keccak)} but found {childOrRef?.GetType()} with a value of {childOrRef}. Keccak calculated? : {isKeccakCalculated}; Keccak correct? : {isKeccakCorrect}");
+                }
 
-            return child;
+                // pruning trick so we never store long persisted paths
+                if (child?.IsPersisted == true)
+                {
+                    UnresolveChild(childIndex);
+                }
+
+                return child;
+            }
         }
 
         public void ReplaceChildRef(int i, TrieNode child)
@@ -796,6 +800,28 @@ namespace Nethermind.Trie
             }
         }
 
+        private void SeekChild(ref RlpStream.UnsafeReader reader, int itemToSetOn)
+        {
+            if (_rlpStream is null)
+            {
+                return;
+            }
+
+            reader.SkipLength();
+            if (IsExtension)
+            {
+                reader.SkipItem();
+                itemToSetOn--;
+            }
+
+            for (int i = 0; i < itemToSetOn; i++)
+            {
+                reader.SkipItem();
+            }
+        }
+
+
+        short spins = 0;
         private object? ResolveChild(ITrieNodeResolver tree, int i)
         {
             object? childOrRef;
@@ -808,8 +834,9 @@ namespace Nethermind.Trie
                 InitData();
                 if (_data![i] is null)
                 {
-                    SeekChild(i);
-                    int prefix = _rlpStream!.ReadByte();
+                    RlpStream.UnsafeReader reader = _rlpStream.GetReader();
+                    SeekChild(ref reader, i);
+                    int prefix = reader.ReadByte();
 
                     switch (prefix)
                     {
@@ -821,8 +848,8 @@ namespace Nethermind.Trie
                         }
                         case 160:
                         {
-                            _rlpStream.Position--;
-                            Keccak keccak = _rlpStream.DecodeKeccak();
+                            reader.Position--;
+                            Keccak keccak = reader.DecodeKeccak();
                             TrieNode child = tree.FindCachedOrUnknown(keccak);
                             _data![i] = childOrRef = child;
 
@@ -835,8 +862,8 @@ namespace Nethermind.Trie
                         }
                         default:
                         {
-                            _rlpStream.Position--;
-                            Span<byte> fullRlp = _rlpStream.PeekNextItem();
+                            reader.Position--;
+                            Span<byte> fullRlp = reader.PeekNextItem();
                             TrieNode child = new(NodeType.Unknown, fullRlp.ToArray());
                             _data![i] = childOrRef = child;
                             break;

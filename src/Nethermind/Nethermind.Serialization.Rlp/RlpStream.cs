@@ -37,6 +37,50 @@ namespace Nethermind.Serialization.Rlp
         {
         }
 
+        public struct UnsafeReader
+        {
+            public int _position;
+            public int Position { get => _position; set => _position = value; }
+
+            private RlpStream _stream;
+
+            public UnsafeReader(RlpStream stream)
+            {
+                _position = 0;
+                _stream = stream;
+            }
+
+            public void SkipLength()
+            {
+                _stream.SkipLength(ref _position);
+            }
+
+            public void SkipItem()
+            {
+                _stream.SkipItem(ref _position);
+            }
+
+            public int ReadByte()
+            {
+                return _stream.ReadByte(ref _position);
+            }
+
+            public Keccak DecodeKeccak()
+            {
+                return _stream.DecodeKeccak(ref _position);
+            }
+
+            public Span<byte> PeekNextItem()
+            {
+                return _stream.PeekNextItem(ref _position);
+            }
+        }
+
+        public UnsafeReader GetReader()
+        {
+            return new UnsafeReader(this);
+        }
+
         public long MemorySize => MemorySizes.SmallObjectOverhead
                                   + MemorySizes.Align(MemorySizes.ArrayOverhead + Length)
                                   + MemorySizes.Align(sizeof(int));
@@ -524,6 +568,11 @@ namespace Nethermind.Serialization.Rlp
             SkipBytes(PeekPrefixAndContentLength().PrefixLength);
         }
 
+        public void SkipLength(ref int position)
+        {
+            SkipBytes(PeekPrefixAndContentLength().PrefixLength);
+        }
+
         public int PeekNextRlpLength()
         {
             (int a, int b) = PeekPrefixAndContentLength();
@@ -652,6 +701,11 @@ namespace Nethermind.Serialization.Rlp
             return Data![Position++];
         }
 
+        public virtual byte ReadByte(ref int position)
+        {
+            return Data![position++];
+        }
+
         public virtual byte PeekByte()
         {
             return Data![Position];
@@ -667,10 +721,21 @@ namespace Nethermind.Serialization.Rlp
             Position += length;
         }
 
+        protected void SkipBytes(ref int position, int length)
+        {
+            position += length;
+        }
+
         public virtual Span<byte> Read(int length)
         {
             Span<byte> data = Data.AsSpan(Position, length);
             Position += length;
+            return data;
+        }
+        public Span<byte> Read(ref int position, int length)
+        {
+            Span<byte> data = Data.AsSpan(position, length);
+            position += length;
             return data;
         }
 
@@ -697,6 +762,34 @@ namespace Nethermind.Serialization.Rlp
             }
 
             Span<byte> keccakSpan = Read(32);
+            if (keccakSpan.SequenceEqual(Keccak.OfAnEmptyString.Bytes))
+            {
+                return Keccak.OfAnEmptyString;
+            }
+
+            if (keccakSpan.SequenceEqual(Keccak.EmptyTreeHash.Bytes))
+            {
+                return Keccak.EmptyTreeHash;
+            }
+
+            return new Keccak(keccakSpan.ToArray());
+        }
+
+        public Keccak? DecodeKeccak(ref int position)
+        {
+            int prefix = ReadByte(ref position);
+            if (prefix == 128)
+            {
+                return null;
+            }
+
+            if (prefix != 128 + 32)
+            {
+                throw new RlpException(
+                    $"Unexpected prefix of {prefix} when decoding {nameof(Keccak)} at position {Position} in the message of length {Length} starting with {Description}");
+            }
+
+            Span<byte> keccakSpan = Read(ref position, 32);
             if (keccakSpan.SequenceEqual(Keccak.OfAnEmptyString.Bytes))
             {
                 return Keccak.OfAnEmptyString;

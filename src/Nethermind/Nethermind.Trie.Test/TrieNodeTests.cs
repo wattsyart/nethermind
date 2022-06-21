@@ -505,8 +505,8 @@ namespace Nethermind.Trie.Test
         {
             TrieNode node = new(NodeType.Branch);
             TrieNode randomTrieNode = new(NodeType.Leaf);
-            randomTrieNode.Key = new HexPrefix(true, new byte[] {1, 2, 3});
-            randomTrieNode.Value = new byte[] {1, 2, 3};
+            randomTrieNode.Key = new HexPrefix(true, new byte[] { 1, 2, 3 });
+            randomTrieNode.Value = new byte[] { 1, 2, 3 };
             for (int i = 0; i < 16; i++)
             {
                 node.SetChild(i, randomTrieNode);
@@ -518,6 +518,27 @@ namespace Nethermind.Trie.Test
 
             restoredNode.RlpEncode(NullTrieNodeResolver.Instance);
         }
+
+        [Test]
+        public void Do_multi_threading()
+        {
+            TrieNode node = new(NodeType.Branch);
+            for (int i = 0; i < 16; i++)
+            {
+                TrieNode randomTrieNode = new(NodeType.Leaf);
+                randomTrieNode.Key = new HexPrefix(true, new byte[] { (byte)i, 2, 3 });
+                randomTrieNode.Value = new byte[] { 1, 2, 3 };
+                node.SetChild(i, randomTrieNode);
+            }
+
+            byte[] rlp = node.RlpEncode(NullTrieNodeResolver.Instance);
+
+            TrieNode restoredNode = new(NodeType.Branch, rlp);
+
+            Parallel.For(0, 500, (a,b) => restoredNode.GetChild(NullTrieNodeResolver.Instance, 0));
+        }
+
+
 
         [Test]
         public void Size_of_a_heavy_leaf_is_correct()
