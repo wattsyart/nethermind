@@ -427,7 +427,7 @@ namespace Nethermind.Synchronization.SnapSync
                     }
                     if (_ahs.ContainsKey(request.Accounts[i].Path))
                     {
-                        _logger.Warn($"{_ahs[request.Accounts[i].Path]}, {request.Accounts[i].Account.StorageRoot}, {response.PathsAndSlots[i].Length}, {response.PathsAndSlots[i].Sum(x => x.SlotRlpValue?.Length ?? 0)}, {(response.PathsAndSlots[i].Length > 0 ? response.PathsAndSlots[i][0].Path : Keccak.Zero )},  {(response.PathsAndSlots[i].Length > 0 ? response.PathsAndSlots[i][response.PathsAndSlots[i].Length-1].Path : Keccak.MaxValue)}");
+                        _logger.Warn($"{_ahs[request.Accounts[i].Path]}, {response.PathsAndSlots[i].OrderByDescending(x=>x.SlotRlpValue.Length).FirstOrDefault()?.Path}");
                     }
 
                     result = AddStorageRange(request.BlockNumber.Value, request.Accounts[i], request.Accounts[i].Account.StorageRoot, request.StartingHash, response.PathsAndSlots[i], proofs);
