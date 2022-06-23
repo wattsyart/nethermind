@@ -427,7 +427,10 @@ namespace Nethermind.Synchronization.SnapSync
                     }
                     if (_ahs.ContainsKey(request.Accounts[i].Path))
                     {
-                        var heavyRlp = response.PathsAndSlots[i].OrderByDescending(x => x.SlotRlpValue.Length).FirstOrDefault();
+                        var heavyRlp = response.PathsAndSlots[i]?
+                            .Where(x => x.SlotRlpValue.Any(v => v != 0))
+                            .OrderByDescending(x=>x.SlotRlpValue.Length)
+                            .FirstOrDefault();
                     ;   _logger.Warn($"{_ahs[request.Accounts[i].Path]}, {heavyRlp?.Path}, {heavyRlp?.SlotRlpValue?.Length}");
                     }
 
