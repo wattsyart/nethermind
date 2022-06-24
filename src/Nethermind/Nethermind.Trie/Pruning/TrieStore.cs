@@ -158,6 +158,20 @@ namespace Nethermind.Trie.Pruning
             _pruningStrategy = pruningStrategy ?? throw new ArgumentNullException(nameof(pruningStrategy));
             _persistenceStrategy = persistenceStrategy ?? throw new ArgumentNullException(nameof(persistenceStrategy));
             _dirtyNodes = new DirtyNodesCache(this);
+        } 
+        
+        private TrieStore(
+            IKeyValueStoreWithBatching? keyValueStore,
+            IPruningStrategy? pruningStrategy,
+            IPersistenceStrategy? persistenceStrategy,
+            ILogger? logger,
+            DirtyNodesCache existingDirtyNodesCache)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _keyValueStore = keyValueStore ?? throw new ArgumentNullException(nameof(keyValueStore));
+            _pruningStrategy = pruningStrategy ?? throw new ArgumentNullException(nameof(pruningStrategy));
+            _persistenceStrategy = persistenceStrategy ?? throw new ArgumentNullException(nameof(persistenceStrategy));
+            _dirtyNodes = existingDirtyNodesCache ?? throw new ArgumentNullException(nameof(existingDirtyNodesCache));
         }
 
         public long LastPersistedBlockNumber
@@ -823,6 +837,17 @@ namespace Nethermind.Trie.Pruning
 
                 if (_logger.IsInfo) _logger.Info($"Full Pruning Persist Cache finished: {stopwatch.Elapsed} {persistedNodes / (double)million:N} mln nodes persisted.");
             });
+        }
+
+        public TrieStore With(IKeyValueStoreWithBatching differentKeyValueStore)
+        {
+            return new TrieStore(
+                differentKeyValueStore,
+                _pruningStrategy,
+                _persistenceStrategy,
+                _logger,
+                _dirtyNodes
+                );
         }
     }
 }

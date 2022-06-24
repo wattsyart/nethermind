@@ -113,11 +113,8 @@ namespace Nethermind.Init.Steps
             CachingStore cachedStateDb = getApi.DbProvider.StateDb
                 .Cached(Trie.MemoryAllowance.TrieNodeCacheCount);
             setApi.MainStateDbWithCache = cachedStateDb;
-            IKeyValueStore codeDb = getApi.DbProvider.CodeDb
-                .WitnessedBy(witnessCollector);
 
             TrieStore trieStore;
-            IKeyValueStoreWithBatching stateWitnessedBy = setApi.MainStateDbWithCache.WitnessedBy(witnessCollector);
             if (pruningConfig.Mode.IsMemory())
             {
                 IPersistenceStrategy persistenceStrategy = Persist.IfBlockOlderThan(pruningConfig.PersistenceInterval); // TODO: this should be based on time
@@ -129,7 +126,7 @@ namespace Nethermind.Init.Steps
                 }
                 
                 setApi.TrieStore = trieStore = new TrieStore(
-                    stateWitnessedBy,
+                    setApi.MainStateDbWithCache,
                     Prune.WhenCacheReaches(pruningConfig.CacheMb.MB()), // TODO: memory hint should define this
                     persistenceStrategy, 
                     getApi.LogManager);
@@ -147,7 +144,7 @@ namespace Nethermind.Init.Steps
             else
             {
                 setApi.TrieStore = trieStore = new TrieStore(
-                    stateWitnessedBy,
+                    setApi.MainStateDbWithCache,
                     No.Pruning,
                     Persist.EveryBlock,
                     getApi.LogManager);
@@ -159,8 +156,8 @@ namespace Nethermind.Init.Steps
             ITrieStore readOnlyTrieStore = setApi.ReadOnlyTrieStore = trieStore.AsReadOnly(cachedStateDb);
 
             IStateProvider stateProvider = setApi.StateProvider = new StateProvider(
-                trieStore,
-                codeDb,
+                trieStore.With(setApi.MainStateDbWithCache.WitnessedBy(witnessCollector)),
+                getApi.DbProvider.CodeDb.WitnessedBy(witnessCollector),
                 getApi.LogManager);
 
             ReadOnlyDbProvider readOnly = new(getApi.DbProvider, false);
