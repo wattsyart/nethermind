@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -28,12 +28,12 @@ namespace Nethermind.Crypto
     {
         public Signature Sign(PrivateKey privateKey, Keccak message)
         {
-            if (!Proxy.VerifyPrivateKey(privateKey.KeyBytes))
+            if (!Proxy.Instance.VerifyPrivateKey(privateKey.KeyBytes))
             {
                 throw new ArgumentException("Invalid private key", nameof(privateKey));
             }
 
-            byte[] signatureBytes = Proxy.SignCompact(message.Bytes, privateKey.KeyBytes, out int recoveryId);
+            byte[] signatureBytes = Proxy.Instance.SignCompact(message.Bytes, privateKey.KeyBytes, out int recoveryId);
 
             //// https://bitcoin.stackexchange.com/questions/59820/sign-a-tx-with-low-s-value-using-openssl
 
@@ -65,7 +65,7 @@ namespace Nethermind.Crypto
         public PublicKey? RecoverPublicKey(Signature signature, Keccak message)
         {
             Span<byte> publicKey = stackalloc byte[65];
-            bool success = Proxy.RecoverKeyFromCompact(publicKey, message.Bytes, signature.Bytes, signature.RecoveryId, false);
+            bool success = Proxy.Instance.RecoverKeyFromCompact(publicKey, message.Bytes, signature.Bytes, signature.RecoveryId, false);
             if (!success)
             {
                 return null;
@@ -77,7 +77,7 @@ namespace Nethermind.Crypto
         public CompressedPublicKey? RecoverCompressedPublicKey(Signature signature, Keccak message)
         {
             Span<byte> publicKey = stackalloc byte[33];
-            bool success = Proxy.RecoverKeyFromCompact(publicKey, message.Bytes, signature.Bytes, signature.RecoveryId, true);
+            bool success = Proxy.Instance.RecoverKeyFromCompact(publicKey, message.Bytes, signature.Bytes, signature.RecoveryId, true);
             if (!success)
             {
                 return null;
@@ -88,7 +88,7 @@ namespace Nethermind.Crypto
 
         public PublicKey Decompress(CompressedPublicKey compressedPublicKey)
         {
-            byte[] deserialized = Proxy.Decompress(compressedPublicKey.Bytes);
+            byte[] deserialized = Proxy.Instance.Decompress(compressedPublicKey.Bytes);
             return new PublicKey(deserialized);
         }
     }

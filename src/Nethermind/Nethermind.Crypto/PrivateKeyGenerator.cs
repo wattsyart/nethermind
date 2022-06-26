@@ -40,7 +40,7 @@ namespace Nethermind.Crypto
             do
             {
                 var bytes = _cryptoRandom.GenerateRandomBytes(32);
-                if (Proxy.VerifyPrivateKey(bytes))
+                if (Proxy.Instance.VerifyPrivateKey(bytes))
                 {
                     return new PrivateKey(bytes);
                 }

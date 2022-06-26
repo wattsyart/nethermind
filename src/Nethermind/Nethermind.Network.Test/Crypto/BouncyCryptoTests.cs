@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -43,8 +43,8 @@ namespace Nethermind.Network.Test.Crypto
             PrivateKey privateKey1 = TestItem.PrivateKeyA;
             PrivateKey privateKey2 = TestItem.PrivateKeyB;
 
-            byte[] sharedSecret1 = Proxy.EcdhSerialized(privateKey2.PublicKey.Bytes, privateKey1.KeyBytes);
-            byte[] sharedSecret2 = Proxy.EcdhSerialized(privateKey1.PublicKey.Bytes, privateKey2.KeyBytes);
+            byte[] sharedSecret1 = Proxy.Instance.EcdhSerialized(privateKey2.PublicKey.Bytes, privateKey1.KeyBytes);
+            byte[] sharedSecret2 = Proxy.Instance.EcdhSerialized(privateKey1.PublicKey.Bytes, privateKey2.KeyBytes);
 
             Assert.AreEqual(sharedSecret1, sharedSecret2);
         }

@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@ using Nethermind.Secp256k1;
 
 namespace Nethermind.Core.Crypto
 {
-
     public class CompressedPublicKey : IEquatable<CompressedPublicKey>
     {
         public const int LengthInBytes = 33;
@@ -45,7 +44,7 @@ namespace Nethermind.Core.Crypto
 
     public PublicKey Decompress()
     {
-        return new PublicKey(Proxy.Decompress(Bytes));
+        return new PublicKey(Proxy.Instance.Decompress(Bytes));
     }
     
     public byte[] Bytes { get; }

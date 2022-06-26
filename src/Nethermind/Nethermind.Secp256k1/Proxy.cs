@@ -23,8 +23,10 @@ using Nethermind.Native;
 
 namespace Nethermind.Secp256k1
 {
-    public static class Proxy
+    public sealed class Proxy : ISecp256k1
     {
+        public static ISecp256k1 Instance = new Proxy();
+
         private const string Secp256k1 = "secp256k1";
 
         static Proxy()
@@ -32,6 +34,8 @@ namespace Nethermind.Secp256k1
             NativeLibrary.SetDllImportResolver(typeof(Proxy).Assembly, NativeLib.ImportResolver);
             Context = CreateContext();
         }
+
+        private Proxy() { }
 
         /*****************************************************************************************/
         /*****************************************************************************************/
@@ -115,12 +119,12 @@ namespace Nethermind.Secp256k1
             return secp256k1_context_create(Secp256K1ContextSign | Secp256K1ContextVerify);
         }
 
-        public static bool VerifyPrivateKey(byte[] privateKey)
+        public bool VerifyPrivateKey(byte[] privateKey)
         {
             return secp256k1_ec_seckey_verify(Context, privateKey);
         }
 
-        public static unsafe byte[] GetPublicKey(byte[] privateKey, bool compressed)
+        public unsafe byte[] GetPublicKey(byte[] privateKey, bool compressed)
         {
             Span<byte> publicKey = stackalloc byte[64];
             Span<byte> serializedPublicKey = stackalloc byte[compressed ? 33 : 65];
@@ -148,7 +152,7 @@ namespace Nethermind.Secp256k1
             return serializedPublicKey.ToArray();
         }
 
-        public static byte[] SignCompact(byte[] messageHash, byte[] privateKey, out int recoveryId)
+        public byte[] SignCompact(byte[] messageHash, byte[] privateKey, out int recoveryId)
         {
             byte[] recoverableSignature = new byte[65];
             recoveryId = 0;
@@ -201,7 +205,7 @@ namespace Nethermind.Secp256k1
         //     }
         // }
         
-        public static unsafe bool RecoverKeyFromCompact(Span<byte> output, byte[] messageHash, Span<byte> compactSignature, int recoveryId, bool compressed)
+        public unsafe bool RecoverKeyFromCompact(Span<byte> output, byte[] messageHash, Span<byte> compactSignature, int recoveryId, bool compressed)
         {
             Span<byte> recoverableSignature = stackalloc byte[65];
             Span<byte> publicKey = stackalloc byte[64];
@@ -243,7 +247,7 @@ namespace Nethermind.Secp256k1
 
         unsafe delegate int secp256k1_ecdh_hash_function(void* output, void* x, void* y, IntPtr data);
 
-        public static unsafe bool Ecdh(byte[] agreement, byte[] publicKey, byte[] privateKey)
+        public unsafe bool Ecdh(byte[] agreement, byte[] publicKey, byte[] privateKey)
         {
             int outputLength = agreement.Length;
 
@@ -275,7 +279,7 @@ namespace Nethermind.Secp256k1
             }
         }
 
-        public static byte[] EcdhSerialized(byte[] publicKey, byte[] privateKey)
+        public byte[] EcdhSerialized(byte[] publicKey, byte[] privateKey)
         {
             Span<byte> serializedKey = stackalloc byte[65];
             ToPublicKeyArray(serializedKey, publicKey);
@@ -286,7 +290,7 @@ namespace Nethermind.Secp256k1
             return result;
         }
         
-        public static byte[] Decompress(Span<byte> compressed)
+        public byte[] Decompress(Span<byte> compressed)
         {
             Span<byte> serializedKey = stackalloc byte[65];
             byte[] publicKey = new byte[64];

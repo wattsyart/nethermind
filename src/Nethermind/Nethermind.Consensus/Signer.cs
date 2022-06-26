@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -53,7 +53,7 @@ namespace Nethermind.Consensus
         public Signature Sign(Keccak message)
         {
             if (!CanSign) throw new InvalidOperationException("Cannot sign without provided key.");
-            byte[] rs = Proxy.SignCompact(message.Bytes, _key!.KeyBytes, out int v);
+            byte[] rs = Proxy.Instance.SignCompact(message.Bytes, _key!.KeyBytes, out int v);
             return new Signature(rs, v);
         }
 

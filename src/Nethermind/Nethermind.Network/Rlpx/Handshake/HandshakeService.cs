@@ -62,7 +62,7 @@ namespace Nethermind.Network.Rlpx.Handshake
             handshake.InitiatorNonce = _cryptoRandom.GenerateRandomBytes(32);
             handshake.EphemeralPrivateKey = _ephemeralGenerator.Generate();
 
-            byte[] staticSharedSecret = Proxy.EcdhSerialized(remoteNodeId.Bytes, _privateKey.KeyBytes);
+            byte[] staticSharedSecret = Proxy.Instance.EcdhSerialized(remoteNodeId.Bytes, _privateKey.KeyBytes);
             byte[] forSigning = staticSharedSecret.Xor(handshake.InitiatorNonce);
 
             if (preEip8Format)
@@ -134,7 +134,7 @@ namespace Nethermind.Network.Rlpx.Handshake
             handshake.EphemeralPrivateKey = _ephemeralGenerator.Generate();
 
             handshake.InitiatorNonce = authMessage.Nonce;
-            byte[] staticSharedSecret = Proxy.EcdhSerialized(handshake.RemoteNodeId.Bytes, _privateKey.KeyBytes);
+            byte[] staticSharedSecret = Proxy.Instance.EcdhSerialized(handshake.RemoteNodeId.Bytes, _privateKey.KeyBytes);
             byte[] forSigning = staticSharedSecret.Xor(handshake.InitiatorNonce);
 
             handshake.RemoteEphemeralPublicKey = _ecdsa.RecoverPublicKey(authMessage.Signature, new Keccak(forSigning));
@@ -223,7 +223,7 @@ namespace Nethermind.Network.Rlpx.Handshake
         public static void SetSecrets(EncryptionHandshake handshake, HandshakeRole handshakeRole)
         {
             Span<byte> tempConcat = stackalloc byte[64];
-            Span<byte> ephemeralSharedSecret = Proxy.EcdhSerialized(handshake.RemoteEphemeralPublicKey.Bytes, handshake.EphemeralPrivateKey.KeyBytes);
+            Span<byte> ephemeralSharedSecret = Proxy.Instance.EcdhSerialized(handshake.RemoteEphemeralPublicKey.Bytes, handshake.EphemeralPrivateKey.KeyBytes);
             Span<byte> nonceHash = ValueKeccak.Compute(Bytes.Concat(handshake.RecipientNonce, handshake.InitiatorNonce)).BytesAsSpan;
             ephemeralSharedSecret.CopyTo(tempConcat.Slice(0, 32));
             nonceHash.CopyTo(tempConcat.Slice(32, 32));

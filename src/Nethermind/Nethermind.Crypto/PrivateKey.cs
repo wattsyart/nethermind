@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -46,7 +46,7 @@ namespace Nethermind.Crypto
                 throw new ArgumentNullException(nameof(keyBytes));
             }
 
-            if (!Proxy.VerifyPrivateKey(keyBytes))
+            if (!Proxy.Instance.VerifyPrivateKey(keyBytes))
             {
                 throw new ArgumentException("provided value is not a valid private key", nameof(keyBytes));
             }
@@ -101,12 +101,12 @@ namespace Nethermind.Crypto
 
         private PublicKey ComputePublicKey()
         {
-            return new(Proxy.GetPublicKey(KeyBytes, false));
+            return new(Proxy.Instance.GetPublicKey(KeyBytes, false));
         }
         
         private CompressedPublicKey ComputeCompressedPublicKey()
         {
-            return new(Proxy.GetPublicKey(KeyBytes, true));
+            return new(Proxy.Instance.GetPublicKey(KeyBytes, true));
         }
 
         public override string ToString()

@@ -1,4 +1,4 @@
-﻿//  Copyright (c) 2021 Demerzel Solutions Limited
+//  Copyright (c) 2021 Demerzel Solutions Limited
 //  This file is part of the Nethermind library.
 // 
 //  The Nethermind library is free software: you can redistribute it and/or modify
@@ -131,7 +131,7 @@ namespace Nethermind.Crypto
         public Address? RecoverAddress(Span<byte> signatureBytes, Keccak message)
         {
             Span<byte> publicKey = stackalloc byte[65];
-            bool success = Proxy.RecoverKeyFromCompact(
+            bool success = Proxy.Instance.RecoverKeyFromCompact(
                 publicKey,
                 message.Bytes,
                 signatureBytes.Slice(0, 64),
